@@ -12,15 +12,36 @@
 A Next.js (App Router) storefront that pulls its catalog from **Shopify**
 (Storefront API), its marketing content (home page, header/footer, About/
 Careers/FAQ/...) from **Contentstack**, and product search from **Algolia**
-— with a cookie-based cart backed by React Server Functions.
+— with a cookie-based cart backed by React Server Functions and Zustand.
 
 ## Stack
 
-- **Next.js 16** (App Router, Turbopack, React Server Functions)
-- **Shopify Storefront API** — catalog, cart, checkout handoff
+- **Next.js 16** (App Router, Turbopack, React Server Functions, React Compiler)
+- **React 19**
+- **Shopify Storefront API** — catalog, cart mutations, checkout handoff
 - **Contentstack** — home page, header/footer, static content pages, FAQ, contact
 - **Algolia** (`react-instantsearch`) — product search
-- **Tailwind CSS v4** + **shadcn/ui** (on top of Base UI primitives)
+- **Zustand** — client-side cart store (see [Architecture notes](#architecture-notes))
+- **Tailwind CSS v4** + **shadcn/ui** (on top of [Base UI](https://base-ui.com/) primitives)
+
+## Features
+
+- Product listing (ISR) and detail pages, sourced live from Shopify
+- Cart: add/update/remove line items via Server Functions, cookie-based
+  session, slide-out drawer — state shared across the app through a Zustand
+  store (no Context provider wrapping the tree)
+- Checkout: reviews the cart, lets the buyer set an email, then hands off to
+  Shopify's hosted checkout
+- Product search (Algolia `react-instantsearch`), with the on-page listing as
+  a fallback while the search box is empty
+- Home page, header, footer, and static pages (About, Careers, Privacy,
+  Terms, Shipping & Returns, Track Order, FAQ, Contact) all authored in
+  Contentstack — nothing here is hardcoded copy
+- SEO: dynamic `sitemap.xml` and `robots.txt`, per-page canonical URLs and
+  Open Graph/Twitter metadata, JSON-LD `Product` structured data on product
+  pages, and a per-entry "exclude from search indexing" flag in Contentstack
+- `loading.tsx` route-level skeletons so navigation streams in instead of
+  blocking on data
 
 ## Getting started
 
@@ -44,6 +65,19 @@ Careers/FAQ/...) from **Contentstack**, and product search from **Algolia**
    ```
 
    Open [http://localhost:3000](http://localhost:3000).
+
+## Environment variables
+
+See `.env.example` for the full list with inline comments. Grouped by service:
+
+| Variable | Used for |
+| --- | --- |
+| `NEXT_PUBLIC_SITE_URL` | Canonical public URL — `metadataBase`, `sitemap.xml`, `robots.txt`, JSON-LD |
+| `NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_PRIVATE_TOKEN` | Shopify Storefront API (catalog, cart) |
+| `CONTENTSTACK_API_KEY`, `CONTENTSTACK_DELIVERY_TOKEN` | Contentstack Delivery API (read, used at request time) |
+| `CONTENTSTACK_MANAGEMENT_TOKEN` | Contentstack Management API — **scripts only**, never used by the app itself |
+| `ALGOLIA_APP_ID`, `ALGOLIA_ADMIN_KEY`, `ALGOLIA_INDEX_NAME` | Algolia admin — **scripts only** (`sync-algolia`) |
+| `NEXT_PUBLIC_ALGOLIA_APP_ID`, `NEXT_PUBLIC_ALGOLIA_SEARCH_KEY`, `NEXT_PUBLIC_ALGOLIA_INDEX_NAME` | Algolia search-only key, used client-side by `/search` |
 
 ## Content & data setup scripts
 
@@ -74,14 +108,87 @@ npm run sync-contentstack-home
 All of these are idempotent — safe to re-run after editing the placeholder
 content inside each script.
 
+## Available scripts
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the dev server (Turbopack) |
+| `npm run build` | Production build |
+| `npm run start` | Serve the production build |
+| `npm run lint` | ESLint |
+| `npm run sync-algolia` | Push the full Shopify catalog into the Algolia index |
+| `npm run sync-contentstack-home` | Replace the home page's hero/category/promo with real Shopify products |
+| `npm run setup-contentstack-content-types` | Create the Contentstack content types this app expects |
+| `npm run seed-contentstack-site-content` | Seed header/footer/static pages/FAQ placeholder content |
+| `npm run seed-contentstack-contacts` | Seed placeholder contact cards |
+
 ## Project structure
 
-- `src/app/` — routes (App Router)
-- `src/components/` — UI components (`ui/` holds the shadcn primitives)
-- `src/lib/` — API clients and data-fetching (`shopify*.ts`, `contentstack*.ts`,
-  `algolia-client.ts`, `cart-actions.ts` for the cart's Server Functions)
-- `scripts/` — one-off/CLI scripts for setting up and seeding Contentstack and
-  Algolia (run with `npm run <script-name>`, powered by `tsx`)
+```
+src/
+  app/                          routes (App Router)
+    page.tsx                    — home (Contentstack)
+    products/                   — product listing (ISR) + loading.tsx
+    products/[product]/         — product detail (ISR) + loading.tsx + not-found.tsx
+    search/                     — Algolia-powered search
+                                   (layout.tsx carries its metadata — the page
+                                   itself is a Client Component)
+    checkout/                   — cart review → Shopify hosted checkout handoff
+    contact/, faq/               — Contentstack-backed static pages
+    [slug]/                     — any other Contentstack `page` entry
+    sitemap.ts, robots.ts       — generated from the Shopify catalog + Contentstack pages
+    loading.tsx                 — generic fallback for routes without their own
+  components/
+    ui/                         — shadcn primitives (Button, Card, Sheet, Separator, ...)
+    atoms/                      — small shared building blocks (IconButton, BrandLogo,
+                                   Price, CountBadge, EmptyState)
+    molecules/                  — QuantityStepper
+    organisms/                  — SiteHeader, SiteFooter, CartDrawer, ProductCard,
+                                   ProductGrid, ProductSearch, ProductMediaCarousel, ...
+    providers/                  — CartInitializer (kicks off the cart store's initial fetch)
+  types/
+    product.ts                  — the canonical `Product` domain type (see below)
+  lib/
+    shopify.ts, shopify-queries.ts, shopify-cart.ts   — Shopify Storefront API client + queries
+    contentstack.ts, contentstack-queries.ts          — Contentstack Delivery SDK + queries
+    algolia-client.ts           — Algolia search client (browser-safe, search-only key)
+    cart-store.ts                — Zustand cart store + useCart() hook
+    cart-actions.ts              — cart Server Functions (add/update/remove line items)
+    json-ld.ts                   — schema.org structured-data builders
+    site.ts, currency.ts, utils.ts
+  hooks/
+    use-locale.ts                — hydration-safe browser-locale hook
+scripts/                        one-off/CLI setup & seed scripts (run via `npm run <name>`, tsx)
+```
+
+## Architecture notes
+
+**Domain types follow an onion pattern.** `src/types/product.ts` defines one
+canonical `Product` shape (plus `ProductDetail`/`ProductForSearch` variants).
+Every data source has its own small adapter that maps its raw external shape
+into it at the boundary — `toProduct()`/`toMediaItems()` in
+`shopify-queries.ts` for Shopify's GraphQL response, `hitToProduct()` in
+`product-search.tsx` for Algolia's flat record. Nothing outside those
+adapters — pages, components, scripts — ever deals with GraphQL edges/nodes
+or Algolia's record format; they all just consume `Product`.
+
+**Components follow Atomic Design.** `components/ui/` (shadcn primitives) is
+left untouched; everything built on top of it is organized into
+`atoms/ → molecules/ → organisms/ → providers/`, with shared pieces
+(`IconButton`, `QuantityStepper`, ...) extracted once instead of duplicated
+across the header, footer, and cart drawer.
+
+**Cart state lives in a Zustand store**, not React Context. `CartInitializer`
+replaces the old Context provider — it doesn't wrap the tree, it just
+triggers the store's initial fetch once on mount (the cart cookie is
+httpOnly, so the client has to ask the server for its contents). Any client
+component reads it directly via `useCart()`.
+
+**Rendering strategy.** Most routes are Server Components with
+`revalidate = 60` (ISR) rather than fully static or fully dynamic — content
+from Shopify/Contentstack can change without a redeploy, but pages still
+serve from cache between revalidations. `/checkout` and `/search` are the
+exceptions (Client Components, since they depend on client-only state/hooks).
 
 ## Learn more
 
