@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ShoppingBag } from "lucide-react";
+import { ShoppingBag, Search } from "lucide-react";
 
 import { CartDrawer } from "@/components/cart-drawer";
+import { Button } from "@/components/ui/button";
 import { getNavigation } from "@/lib/contentstack-queries";
 
 const FALLBACK_BRAND_NAME = "flavio-commerce";
@@ -40,7 +41,17 @@ export async function SiteHeader() {
           ))}
         </nav>
 
-        <CartDrawer />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            render={<Link href="/search" />}
+            aria-label="Search"
+          >
+            <Search className="size-4" aria-hidden="true" />
+          </Button>
+          <CartDrawer />
+        </div>
       </div>
     </header>
   );

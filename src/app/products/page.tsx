@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 
 import { getProducts } from '@/lib/shopify-queries';
 import { ProductCard } from '@/components/product-card';
+import { ProductSearch } from '@/components/product-search';
 
 export const revalidate = 60; // ISR
 
@@ -20,21 +21,23 @@ export default async function ProductsPage() {
         Products List
       </h1>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {data?.map(({ node }) => (
-          <ProductCard
-            key={node.id}
-            title={node.title}
-            description={node.description}
-            price={node.priceRange.minVariantPrice}
-            imageUrl={node.featuredImage?.url ?? '/file.svg'}
-            imageAlt={node.title}
-            detailsHref={`/products/${node.handle}`}
-            variantId={node.selectedOrFirstAvailableVariant?.id ?? null}
-            available={node.selectedOrFirstAvailableVariant?.availableForSale ?? false}
-          />
-        ))}
-      </div>
+      <ProductSearch>
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {data?.map(({ node }) => (
+            <ProductCard
+              key={node.id}
+              title={node.title}
+              description={node.description}
+              price={node.priceRange.minVariantPrice}
+              imageUrl={node.featuredImage?.url ?? '/file.svg'}
+              imageAlt={node.title}
+              detailsHref={`/products/${node.handle}`}
+              variantId={node.selectedOrFirstAvailableVariant?.id ?? null}
+              available={node.selectedOrFirstAvailableVariant?.availableForSale ?? false}
+            />
+          ))}
+        </div>
+      </ProductSearch>
     </div>
   );
 }
