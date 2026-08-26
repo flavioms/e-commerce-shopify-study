@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { ShoppingBag, ShoppingCart } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { CartDrawer } from "@/components/cart-drawer";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -32,10 +32,7 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        <Button variant="outline" size="sm" render={<Link href="/cart" />}>
-          <ShoppingCart />
-          Cart
-        </Button>
+        <CartDrawer />
       </div>
     </header>
   );

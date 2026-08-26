@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { AddToCartButton } from "@/components/add-to-cart-button";
 import { Price } from "@/components/price";
 import type { Money } from "@/lib/currency";
 
@@ -22,6 +23,8 @@ export interface ProductCardProps {
   imageUrl: string;
   imageAlt?: string;
   detailsHref: string;
+  variantId: string | null;
+  available?: boolean;
 }
 
 export function ProductCard({
@@ -31,6 +34,8 @@ export function ProductCard({
   imageUrl,
   imageAlt = title,
   detailsHref,
+  variantId,
+  available = true,
 }: ProductCardProps) {
   return (
     <Card className="h-full w-full max-w-sm">
@@ -56,11 +61,12 @@ export function ProductCard({
       <CardFooter className="gap-2">
         <Button
           variant="outline"
-          className="w-full"
+          className="flex-1"
           render={<Link href={detailsHref} />}
         >
           Details
         </Button>
+        <AddToCartButton variantId={variantId} available={available} className="flex-1" />
       </CardFooter>
     </Card>
   );

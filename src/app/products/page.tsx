@@ -23,6 +23,8 @@ export default async function ProductsPage() {
             imageUrl={node.featuredImage?.url ?? '/file.svg'}
             imageAlt={node.title}
             detailsHref={`/products/${node.handle}`}
+            variantId={node.selectedOrFirstAvailableVariant?.id ?? null}
+            available={node.selectedOrFirstAvailableVariant?.availableForSale ?? false}
           />
         ))}
       </div>

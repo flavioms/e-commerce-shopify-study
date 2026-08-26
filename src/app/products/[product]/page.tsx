@@ -6,6 +6,7 @@ import { getProductByHandle } from '@/lib/shopify-queries';
 import { Separator } from '@/components/ui/separator';
 import { ProductMediaCarousel, type ProductMediaItem } from '@/components/product-media-carousel';
 import { ProductCard } from '@/components/product-card';
+import { AddToCartButton } from '@/components/add-to-cart-button';
 import { Price } from '@/components/price';
 
 export const revalidate = 60; // ISR
@@ -93,6 +94,13 @@ export default async function ProductDetailsPage(props: PageProps<'/products/[pr
                     <p className="text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
                         {product.description || 'No description available for this product.'}
                     </p>
+
+                    <AddToCartButton
+                        variantId={product.selectedOrFirstAvailableVariant?.id ?? null}
+                        available={product.selectedOrFirstAvailableVariant?.availableForSale ?? false}
+                        size="lg"
+                        className="w-full sm:w-auto"
+                    />
                 </div>
             </div>
 
@@ -114,6 +122,8 @@ export default async function ProductDetailsPage(props: PageProps<'/products/[pr
                                 imageUrl={node.featuredImage?.url ?? '/file.svg'}
                                 imageAlt={node.title}
                                 detailsHref={`/products/${node.handle}`}
+                                variantId={node.selectedOrFirstAvailableVariant?.id ?? null}
+                                available={node.selectedOrFirstAvailableVariant?.availableForSale ?? false}
                             />
                         ))}
                     </div>
