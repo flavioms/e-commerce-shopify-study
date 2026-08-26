@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { getPageBySlug } from "@/lib/contentstack-queries";
+import { SITE_NAME } from "@/lib/site";
 
 export const revalidate = 60; // ISR
 
@@ -10,10 +11,21 @@ export async function generateMetadata(props: PageProps<"/[slug]">): Promise<Met
   const page = await getPageBySlug(slug);
   if (!page) return {};
 
+  const title = page.seo?.meta_title || page.title;
+  const description = page.seo?.meta_description || page.summary || undefined;
+
   return {
-    title: page.seo?.meta_title || page.title,
-    description: page.seo?.meta_description || page.summary || undefined,
+    title,
+    description,
+    alternates: { canonical: `/${slug}` },
     robots: page.seo?.enable_search_indexing === false ? { index: false } : undefined,
+    openGraph: {
+      type: "website",
+      siteName: SITE_NAME,
+      title,
+      description,
+    },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
 

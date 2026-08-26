@@ -115,6 +115,12 @@ export async function getPageBySlug(slug: string) {
   return result.entries?.[0] ?? null;
 }
 
+/** Every published `page` entry — used to build the sitemap. */
+export async function getAllPages() {
+  const result = await Stack.contentType('page').entry().query().find<PageEntry>();
+  return result.entries ?? [];
+}
+
 export type FaqItemEntry = BaseEntry & {
   // `title` doubles as the question (Contentstack's mandatory default field).
   answer: string;

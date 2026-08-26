@@ -10,6 +10,8 @@ import { ProductGrid } from '@/components/organisms/product-grid';
 import { AddToCartButton } from '@/components/organisms/add-to-cart-button';
 import { Price } from '@/components/atoms/price';
 import type { ProductMediaItem } from '@/types/product';
+import { SITE_NAME } from '@/lib/site';
+import { productJsonLd } from '@/lib/json-ld';
 
 export const revalidate = 60; // ISR
 
@@ -20,10 +22,20 @@ export async function generateMetadata(props: PageProps<'/products/[product]'>):
     const { product } = await getProductByHandle(handle);
     if (!product) return {};
 
+    const description = product.description || `Shop ${product.title} at flavio-commerce.`;
+
     return {
         title: product.title,
-        description: product.description || `Shop ${product.title} at flavio-commerce.`,
-        openGraph: product.featuredImage ? { images: [{ url: product.featuredImage.url }] } : undefined,
+        description,
+        alternates: { canonical: `/products/${handle}` },
+        openGraph: {
+            type: 'website',
+            siteName: SITE_NAME,
+            title: product.title,
+            description,
+            images: product.featuredImage ? [{ url: product.featuredImage.url }] : undefined,
+        },
+        twitter: { card: 'summary_large_image', title: product.title, description },
     };
 }
 
@@ -48,6 +60,12 @@ export default async function ProductDetailsPage(props: PageProps<'/products/[pr
 
     return (
         <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+            <script
+                type="application/ld+json"
+                // Server-rendered, product data only (never user input) — safe to inline.
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd(product)) }}
+            />
+
             <Link
                 href="/products"
                 className="mb-8 inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"

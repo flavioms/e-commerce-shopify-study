@@ -4,12 +4,24 @@ import { Mail, MapPin, Phone } from "lucide-react";
 
 import { getContacts } from "@/lib/contentstack-queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SITE_NAME } from "@/lib/site";
 
 export const revalidate = 60; // ISR
 
+const TITLE = "Contact Us";
+const DESCRIPTION = "Reach out to the flavio-commerce team closest to you.";
+
 export const metadata: Metadata = {
-  title: "Contact Us",
-  description: "Reach out to the flavio-commerce team closest to you.",
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: "/contact" },
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: TITLE,
+    description: DESCRIPTION,
+  },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
 
 export default async function ContactPage() {

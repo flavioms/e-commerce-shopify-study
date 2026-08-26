@@ -3,12 +3,24 @@ import Link from "next/link";
 
 import { getFaqItems } from "@/lib/contentstack-queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SITE_NAME } from "@/lib/site";
 
 export const revalidate = 60; // ISR
 
+const TITLE = "FAQ";
+const DESCRIPTION = "Answers to common questions about shipping, returns, and orders.";
+
 export const metadata: Metadata = {
-  title: "FAQ",
-  description: "Answers to common questions about shipping, returns, and orders.",
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: "/faq" },
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: TITLE,
+    description: DESCRIPTION,
+  },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
 
 export default async function FaqPage() {

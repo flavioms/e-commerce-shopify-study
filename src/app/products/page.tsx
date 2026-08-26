@@ -4,12 +4,24 @@ import type { Metadata } from 'next';
 import { getProducts } from '@/lib/shopify-queries';
 import { ProductGrid } from '@/components/organisms/product-grid';
 import { ProductSearch } from '@/components/organisms/product-search';
+import { SITE_NAME } from '@/lib/site';
 
 export const revalidate = 60; // ISR
 
+const TITLE = 'All Products';
+const DESCRIPTION = 'Browse the full flavio-commerce catalog.';
+
 export const metadata: Metadata = {
-  title: 'All Products',
-  description: 'Browse the full flavio-commerce catalog.',
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: '/products' },
+  openGraph: {
+    type: 'website',
+    siteName: SITE_NAME,
+    title: TITLE,
+    description: DESCRIPTION,
+  },
+  twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION },
 };
 
 export default async function ProductsPage() {

@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react";
 
 import { getHomePage } from "@/lib/contentstack-queries";
 import { Button } from "@/components/ui/button";
+import { SITE_NAME } from "@/lib/site";
 
 export const revalidate = 60; // ISR
 
@@ -12,9 +13,32 @@ export async function generateMetadata(): Promise<Metadata> {
   const home = await getHomePage();
   if (!home) return {};
 
+  const title = home.seo?.meta_title || undefined;
+  const description = home.seo?.meta_description || home.hero?.subheading || undefined;
+
   return {
-    title: home.seo?.meta_title || undefined,
-    description: home.seo?.meta_description || home.hero?.subheading || undefined,
+    title,
+    description,
+    alternates: { canonical: "/" },
+    // Same flag [slug]/page.tsx honors — the home entry can opt out of
+    // indexing from Contentstack too, without a code change.
+    robots: home.seo?.enable_search_indexing === false ? { index: false } : undefined,
+    openGraph: {
+      type: "website",
+      siteName: SITE_NAME,
+      title: title || SITE_NAME,
+      description,
+      images: home.hero?.image ? [{ url: home.hero.image.url }] : undefined,
+    },
+    // Set explicitly rather than left to inherit: a page that sets its own
+    // openGraph but not twitter still inherits the ROOT layout's generic
+    // twitter.title/description (Next only auto-derives twitter:image from
+    // openGraph.images, not the text fields).
+    twitter: {
+      card: "summary_large_image",
+      title: title || SITE_NAME,
+      description,
+    },
   };
 }
 
