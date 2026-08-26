@@ -15,7 +15,8 @@
 //   CONTENTSTACK_API_KEY / CONTENTSTACK_MANAGEMENT_TOKEN (read/write on the stack —
 //     the CONTENTSTACK_DELIVERY_TOKEN used by the app is read-only and won't work here)
 
-import { getAllProducts, type ProductForSync } from '../src/lib/shopify-queries';
+import { getAllProducts } from '../src/lib/shopify-queries';
+import type { ProductForSearch } from '../src/types/product';
 import { formatMoney } from '../src/lib/currency';
 import { cma, cmaHeaders, CMA_BASE_URL, ENVIRONMENT, LOCALE } from './lib/contentstack-cma';
 
@@ -25,7 +26,7 @@ const FEATURED_COUNT = 3;
 type ContentstackAsset = { uid: string; url: string; title: string };
 
 /** Downloads a product's featured image from Shopify's CDN and re-uploads it as a Contentstack asset. */
-async function uploadProductImage(product: ProductForSync): Promise<ContentstackAsset> {
+async function uploadProductImage(product: ProductForSearch): Promise<ContentstackAsset> {
   const featuredImage = product.featuredImage;
   if (!featuredImage) throw new Error(`Product "${product.title}" has no featured image.`);
 
@@ -56,8 +57,8 @@ async function uploadProductImage(product: ProductForSync): Promise<Contentstack
 }
 
 /** Picks up to `count` products, preferring distinct product types, then filling with whatever's left. */
-function pickDiverse(products: ProductForSync[], count: number): ProductForSync[] {
-  const picked: ProductForSync[] = [];
+function pickDiverse(products: ProductForSearch[], count: number): ProductForSearch[] {
+  const picked: ProductForSearch[] = [];
   const seenTypes = new Set<string>();
 
   for (const product of products) {
@@ -74,8 +75,8 @@ function pickDiverse(products: ProductForSync[], count: number): ProductForSync[
   return picked;
 }
 
-function productPrice(product: ProductForSync) {
-  return formatMoney(product.priceRange.minVariantPrice, 'en-US');
+function productPrice(product: ProductForSearch) {
+  return formatMoney(product.price, 'en-US');
 }
 
 async function main() {

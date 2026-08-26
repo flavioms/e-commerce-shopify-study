@@ -2,8 +2,8 @@
 import type { Metadata } from 'next';
 
 import { getProducts } from '@/lib/shopify-queries';
-import { ProductCard } from '@/components/product-card';
-import { ProductSearch } from '@/components/product-search';
+import { ProductGrid } from '@/components/organisms/product-grid';
+import { ProductSearch } from '@/components/organisms/product-search';
 
 export const revalidate = 60; // ISR
 
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ProductsPage() {
-  const data = await getProducts();
+  const products = await getProducts();
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
@@ -22,21 +22,7 @@ export default async function ProductsPage() {
       </h1>
 
       <ProductSearch>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {data?.map(({ node }) => (
-            <ProductCard
-              key={node.id}
-              title={node.title}
-              description={node.description}
-              price={node.priceRange.minVariantPrice}
-              imageUrl={node.featuredImage?.url ?? '/file.svg'}
-              imageAlt={node.title}
-              detailsHref={`/products/${node.handle}`}
-              variantId={node.selectedOrFirstAvailableVariant?.id ?? null}
-              available={node.selectedOrFirstAvailableVariant?.availableForSale ?? false}
-            />
-          ))}
-        </div>
+        <ProductGrid products={products} />
       </ProductSearch>
     </div>
   );

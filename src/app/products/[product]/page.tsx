@@ -5,10 +5,11 @@ import { ChevronLeft } from 'lucide-react';
 
 import { getProductByHandle } from '@/lib/shopify-queries';
 import { Separator } from '@/components/ui/separator';
-import { ProductMediaCarousel, type ProductMediaItem } from '@/components/product-media-carousel';
-import { ProductCard } from '@/components/product-card';
-import { AddToCartButton } from '@/components/add-to-cart-button';
-import { Price } from '@/components/price';
+import { ProductMediaCarousel } from '@/components/organisms/product-media-carousel';
+import { ProductGrid } from '@/components/organisms/product-grid';
+import { AddToCartButton } from '@/components/organisms/add-to-cart-button';
+import { Price } from '@/components/atoms/price';
+import type { ProductMediaItem } from '@/types/product';
 
 export const revalidate = 60; // ISR
 
@@ -33,44 +34,14 @@ export default async function ProductDetailsPage(props: PageProps<'/products/[pr
         notFound();
     }
 
-    const { product, products } = await getProductByHandle(handle);
+    const { product, relatedProducts } = await getProductByHandle(handle);
 
     if (!product) {
         notFound();
     }
 
-    const mediaItems: ProductMediaItem[] = product.media.edges.flatMap(({ node }): ProductMediaItem[] => {
-        if (node.__typename === 'Video') {
-            return [{
-                kind: 'video',
-                id: node.id,
-                alt: node.previewImage?.altText ?? null,
-                previewUrl: node.previewImage?.url ?? null,
-                sources: node.sources,
-            }];
-        }
-
-        if (node.__typename === 'ExternalVideo') {
-            return [{
-                kind: 'external-video',
-                id: node.id,
-                alt: node.previewImage?.altText ?? null,
-                embedUrl: node.embedUrl,
-            }];
-        }
-
-        // MediaImage and Model3d are shown using their preview image.
-        if (!node.previewImage) return [];
-        return [{
-            kind: 'image',
-            id: node.id,
-            url: node.previewImage.url,
-            alt: node.previewImage.altText,
-        }];
-    });
-
-    const galleryItems: ProductMediaItem[] = mediaItems.length > 0
-        ? mediaItems
+    const galleryItems: ProductMediaItem[] = product.media.length > 0
+        ? product.media
         : product.featuredImage
             ? [{ kind: 'image', id: 'featured', url: product.featuredImage.url, alt: product.title }]
             : [];
@@ -99,7 +70,7 @@ export default async function ProductDetailsPage(props: PageProps<'/products/[pr
                             {product.title}
                         </h1>
                         <Price
-                            money={product.priceRange.minVariantPrice}
+                            money={product.price}
                             className="text-2xl font-semibold text-foreground"
                         />
                     </div>
@@ -111,15 +82,15 @@ export default async function ProductDetailsPage(props: PageProps<'/products/[pr
                     </p>
 
                     <AddToCartButton
-                        variantId={product.selectedOrFirstAvailableVariant?.id ?? null}
-                        available={product.selectedOrFirstAvailableVariant?.availableForSale ?? false}
+                        variantId={product.variant?.id ?? null}
+                        available={product.variant?.availableForSale ?? false}
                         size="lg"
                         className="w-full sm:w-auto"
                     />
                 </div>
             </div>
 
-            {products.length > 0 && (
+            {relatedProducts.length > 0 && (
                 <div className="mt-16">
                     <Separator className="mb-10" />
 
@@ -127,21 +98,7 @@ export default async function ProductDetailsPage(props: PageProps<'/products/[pr
                         Related Products
                     </h2>
 
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                        {products.map(({ node }) => (
-                            <ProductCard
-                                key={node.id}
-                                title={node.title}
-                                description={node.description}
-                                price={node.priceRange.minVariantPrice}
-                                imageUrl={node.featuredImage?.url ?? '/file.svg'}
-                                imageAlt={node.title}
-                                detailsHref={`/products/${node.handle}`}
-                                variantId={node.selectedOrFirstAvailableVariant?.id ?? null}
-                                available={node.selectedOrFirstAvailableVariant?.availableForSale ?? false}
-                            />
-                        ))}
-                    </div>
+                    <ProductGrid products={relatedProducts} />
                 </div>
             )}
         </div>

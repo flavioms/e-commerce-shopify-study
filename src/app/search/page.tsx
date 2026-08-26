@@ -1,6 +1,6 @@
 "use client";
 
-import { ProductSearch } from "@/components/product-search";
+import { ProductSearch } from "@/components/organisms/product-search";
 
 export default function SearchPage() {
   return (

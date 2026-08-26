@@ -1,75 +1,118 @@
 import { shopifyClient } from "./shopify";
+import type { Product, ProductDetail, ProductForSearch, ProductMediaItem } from "@/types/product";
 
-type Product = {
+// ---- Raw Shopify GraphQL response shapes ------------------------------------
+// Private to this file. Nothing outside `shopify-queries.ts` should ever see
+// these — every exported function below maps them into the domain types from
+// `@/types/product` before returning, so pages/components/scripts never need
+// to know about GraphQL's wire format (union __typename discrimination,
+// Relay-style edges/nodes, ...).
+
+type RawImage = {
+  url: string;
+  altText?: string | null;
+} | null;
+
+type RawVariant = {
+  id: string;
+  availableForSale: boolean;
+} | null;
+
+type RawProductNode = {
   id: string;
   title: string;
   handle: string;
   description: string;
-  featuredImage: {
-    url: string
-  } | null;
+  featuredImage: RawImage;
   priceRange: {
     minVariantPrice: {
       amount: number;
       currencyCode: string;
-    }
-  }
-  selectedOrFirstAvailableVariant: {
-    id: string;
-    availableForSale: boolean;
-  } | null;
-}
+    };
+  };
+  selectedOrFirstAvailableVariant: RawVariant;
+};
 
-type MediaPreviewImage = {
+type RawMediaPreviewImage = {
   altText: string | null;
   id: string;
   url: string;
 } | null;
 
-type MediaImageNode = {
-  __typename: 'MediaImage';
-  id: string;
-  previewImage: MediaPreviewImage;
+type RawMediaNode =
+  | { __typename: 'MediaImage'; id: string; previewImage: RawMediaPreviewImage }
+  | {
+      __typename: 'Video';
+      id: string;
+      previewImage: RawMediaPreviewImage;
+      sources: { url: string; mimeType: string }[];
+    }
+  | { __typename: 'ExternalVideo'; id: string; previewImage: RawMediaPreviewImage; embedUrl: string; host: string }
+  | { __typename: 'Model3d'; id: string; previewImage: RawMediaPreviewImage };
+
+type RawProductDetailNode = RawProductNode & {
+  category: { name: string } | null;
+  media: { edges: { node: RawMediaNode }[] };
 };
 
-type VideoNode = {
-  __typename: 'Video';
-  id: string;
-  previewImage: MediaPreviewImage;
-  sources: {
-    url: string;
-    mimeType: string;
-  }[];
+type RawProductForSearchNode = RawProductNode & {
+  tags: string[];
+  productType: string;
+  vendor: string;
+  availableForSale: boolean;
 };
 
-type ExternalVideoNode = {
-  __typename: 'ExternalVideo';
-  id: string;
-  previewImage: MediaPreviewImage;
-  embedUrl: string;
-  host: string;
-};
+// ---- Adapters: raw Shopify shape -> domain type -----------------------------
 
-type Model3dNode = {
-  __typename: 'Model3d';
-  id: string;
-  previewImage: MediaPreviewImage;
-};
-
-export type ProductMediaNode = MediaImageNode | VideoNode | ExternalVideoNode | Model3dNode;
-
-type ProductByHandle = Product & {
-  category: {
-    name: string;
-  } | null;
-  media: {
-    edges: {
-      node: ProductMediaNode;
-    }[]
-  }
+function toProduct(node: RawProductNode): Product {
+  return {
+    id: node.id,
+    title: node.title,
+    handle: node.handle,
+    description: node.description,
+    price: node.priceRange.minVariantPrice,
+    featuredImage: node.featuredImage
+      ? { url: node.featuredImage.url, altText: node.featuredImage.altText ?? null }
+      : null,
+    variant: node.selectedOrFirstAvailableVariant,
+  };
 }
 
-export async function getProducts() {
+function toMediaItems(edges: { node: RawMediaNode }[]): ProductMediaItem[] {
+  return edges.flatMap(({ node }): ProductMediaItem[] => {
+    if (node.__typename === 'Video') {
+      return [{
+        kind: 'video',
+        id: node.id,
+        alt: node.previewImage?.altText ?? null,
+        previewUrl: node.previewImage?.url ?? null,
+        sources: node.sources,
+      }];
+    }
+
+    if (node.__typename === 'ExternalVideo') {
+      return [{
+        kind: 'external-video',
+        id: node.id,
+        alt: node.previewImage?.altText ?? null,
+        embedUrl: node.embedUrl,
+      }];
+    }
+
+    // MediaImage and Model3d are shown using their preview image.
+    if (!node.previewImage) return [];
+    return [{
+      kind: 'image',
+      id: node.id,
+      url: node.previewImage.url,
+      alt: node.previewImage.altText,
+    }];
+  });
+}
+
+// ---- Queries -----------------------------------------------------------------
+
+export async function getProducts(): Promise<Product[]> {
   const query = `
     query Products {
       products(first: 20) {
@@ -83,16 +126,9 @@ export async function getProducts() {
         }
       }
     }`;
-  const { data, errors } = await shopifyClient.request<{ products: { edges: { node: Product }[] } }>(query);
+  const { data, errors } = await shopifyClient.request<{ products: { edges: { node: RawProductNode }[] } }>(query);
   if (errors) throw new Error('Error to search products: ' + JSON.stringify(errors));
-  return data?.products?.edges ?? [];
-}
-
-export type ProductForSync = Product & {
-  tags: string[];
-  productType: string;
-  vendor: string;
-  availableForSale: boolean;
+  return (data?.products?.edges ?? []).map(({ node }) => toProduct(node));
 }
 
 /**
@@ -100,7 +136,7 @@ export type ProductForSync = Product & {
  * with the extra fields a search index needs (tags, type, vendor, availability).
  * Meant for offline/batch jobs (e.g. syncing to Algolia) — not for request-time use.
  */
-export async function getAllProducts(): Promise<ProductForSync[]> {
+export async function getAllProducts(): Promise<ProductForSearch[]> {
   const query = `
     query Products($after: String) {
       products(first: 100, after: $after) {
@@ -123,11 +159,11 @@ export async function getAllProducts(): Promise<ProductForSync[]> {
   type ProductsPage = {
     products: {
       pageInfo: { hasNextPage: boolean; endCursor: string | null };
-      edges: { node: ProductForSync }[];
+      edges: { node: RawProductForSearchNode }[];
     };
   };
 
-  const products: ProductForSync[] = [];
+  const products: ProductForSearch[] = [];
   let after: string | null = null;
   let hasNextPage = true;
 
@@ -136,7 +172,14 @@ export async function getAllProducts(): Promise<ProductForSync[]> {
     const { data, errors } = await shopifyClient.request<ProductsPage>(query, { variables });
     if (errors) throw new Error('Error to search all products: ' + JSON.stringify(errors));
 
-    products.push(...(data?.products?.edges ?? []).map(({ node }) => node));
+    const edges = data?.products?.edges ?? [];
+    products.push(...edges.map(({ node }) => ({
+      ...toProduct(node),
+      tags: node.tags,
+      productType: node.productType,
+      vendor: node.vendor,
+      availableForSale: node.availableForSale,
+    })));
     hasNextPage = data?.products?.pageInfo?.hasNextPage ?? false;
     after = data?.products?.pageInfo?.endCursor ?? null;
   }
@@ -144,7 +187,10 @@ export async function getAllProducts(): Promise<ProductForSync[]> {
   return products;
 }
 
-export async function getProductByHandle(handle: string) {
+export async function getProductByHandle(handle: string): Promise<{
+  product: ProductDetail | null;
+  relatedProducts: Product[];
+}> {
   const query = `
     query ProductByHandle($handle: String!) {
       productByHandle(handle: $handle) {
@@ -181,10 +227,24 @@ export async function getProductByHandle(handle: string) {
       }
     }`;
   const variables = { handle };
-  const { data, errors } = await shopifyClient.request<{ productByHandle: ProductByHandle | null, products: { edges: { node: Product }[] } }>(query, { variables });
+  const { data, errors } = await shopifyClient.request<{
+    productByHandle: RawProductDetailNode | null;
+    products: { edges: { node: RawProductNode }[] };
+  }>(query, { variables });
   if (errors) throw new Error('Error to search product by handle: ' + JSON.stringify(errors));
-  return {
-    product: data?.productByHandle ?? null,
-    products: data?.products?.edges.filter(({ node }) => node.id !== data?.productByHandle?.id) ?? [],
-  };
+
+  const rawProduct = data?.productByHandle ?? null;
+  const product: ProductDetail | null = rawProduct
+    ? {
+        ...toProduct(rawProduct),
+        category: rawProduct.category,
+        media: toMediaItems(rawProduct.media.edges),
+      }
+    : null;
+
+  const relatedProducts = (data?.products?.edges ?? [])
+    .filter(({ node }) => node.id !== rawProduct?.id)
+    .map(({ node }) => toProduct(node));
+
+  return { product, relatedProducts };
 }

@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { ShoppingBag, Search } from "lucide-react";
+import { Search } from "lucide-react";
 
-import { CartDrawer } from "@/components/cart-drawer";
-import { Button } from "@/components/ui/button";
+import { CartDrawer } from "@/components/organisms/cart-drawer";
+import { BrandLogo } from "@/components/atoms/brand-logo";
+import { IconButton } from "@/components/atoms/icon-button";
 import { getNavigation } from "@/lib/contentstack-queries";
 
 const FALLBACK_BRAND_NAME = "flavio-commerce";
@@ -21,13 +22,7 @@ export async function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <Link
-          href="/"
-          className="flex items-center gap-2 font-heading text-lg font-semibold tracking-tight text-foreground"
-        >
-          <ShoppingBag className="size-5" aria-hidden="true" />
-          {brandName}
-        </Link>
+        <BrandLogo name={brandName} size="lg" />
 
         <nav className="hidden items-center gap-6 sm:flex">
           {navLinks.map((link) => (
@@ -42,14 +37,12 @@ export async function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Button
+          <IconButton
+            icon={<Search />}
+            label="Search"
             variant="ghost"
-            size="icon-sm"
             render={<Link href="/search" />}
-            aria-label="Search"
-          >
-            <Search className="size-4" aria-hidden="true" />
-          </Button>
+          />
           <CartDrawer />
         </div>
       </div>

@@ -12,9 +12,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { CartLineItem } from "@/components/cart-line-item";
+import { CountBadge } from "@/components/atoms/count-badge";
+import { EmptyState } from "@/components/atoms/empty-state";
+import { CartLineItem } from "@/components/organisms/cart-line-item";
 import { formatMoney } from "@/lib/currency";
-import { useCart } from "@/components/cart-provider";
+import { useCart } from "@/components/providers/cart-provider";
 
 export function CartDrawer() {
   const { cart, isLoading } = useCart();
@@ -30,11 +32,7 @@ export function CartDrawer() {
       <Button variant="outline" size="sm" className="gap-2" onClick={() => setOpen(true)}>
         <span className="relative">
           <ShoppingCart className="size-5" />
-          {hasItems && (
-            <span className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] leading-none font-semibold text-primary-foreground">
-              {totalQuantity > 99 ? "99+" : totalQuantity}
-            </span>
-          )}
+          {hasItems && <CountBadge count={totalQuantity} />}
         </span>
         <span>Cart</span>
         {hasItems && formattedTotal && <span className="text-muted-foreground">{formattedTotal}</span>}
@@ -47,9 +45,7 @@ export function CartDrawer() {
 
         <div className="flex-1 overflow-y-auto px-6">
           {lines.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">
-              {isLoading ? "Loading cart..." : "Your cart is empty."}
-            </p>
+            <EmptyState>{isLoading ? "Loading cart..." : "Your cart is empty."}</EmptyState>
           ) : (
             <ul className="flex flex-col gap-4 pb-4">
               {lines.map(({ node: line }) => (

@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { useCart } from "@/components/cart-provider";
+import { IconButton } from "@/components/atoms/icon-button";
+import { QuantityStepper } from "@/components/molecules/quantity-stepper";
+import { useCart } from "@/components/providers/cart-provider";
 import { removeCartLineAction, setCartLineQuantityAction } from "@/lib/cart-actions";
 import type { Cart } from "@/lib/shopify-cart";
 import { formatMoney } from "@/lib/currency";
@@ -52,38 +53,21 @@ export function CartLineItem({ line }: { line: CartLine }) {
         <p className="text-sm font-semibold text-foreground">{formatMoney(line.cost.totalAmount)}</p>
 
         <div className="mt-1 flex items-center gap-2">
-          <div className="flex items-center rounded-md border border-border">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              disabled={pending}
-              onClick={() => handleQuantityChange(line.quantity - 1)}
-              aria-label="Decrease quantity"
-            >
-              <Minus />
-            </Button>
-            <span className="w-6 text-center text-sm tabular-nums">{line.quantity}</span>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              disabled={pending}
-              onClick={() => handleQuantityChange(line.quantity + 1)}
-              aria-label="Increase quantity"
-            >
-              <Plus />
-            </Button>
-          </div>
+          <QuantityStepper
+            quantity={line.quantity}
+            disabled={pending}
+            onDecrease={() => handleQuantityChange(line.quantity - 1)}
+            onIncrease={() => handleQuantityChange(line.quantity + 1)}
+          />
 
-          <Button
+          <IconButton
+            icon={<Trash2 />}
+            label="Remove item"
             variant="ghost"
-            size="icon-sm"
             disabled={pending}
             onClick={handleRemove}
-            aria-label="Remove item"
             className="text-muted-foreground hover:text-destructive"
-          >
-            <Trash2 />
-          </Button>
+          />
         </div>
       </div>
     </li>

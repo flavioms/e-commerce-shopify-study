@@ -15,7 +15,8 @@
 
 import { algoliasearch } from 'algoliasearch';
 
-import { getAllProducts, type ProductForSync } from '../src/lib/shopify-queries';
+import { getAllProducts } from '../src/lib/shopify-queries';
+import type { ProductForSearch } from '../src/types/product';
 
 const INDEX_NAME = process.env.ALGOLIA_INDEX_NAME ?? 'products';
 
@@ -27,7 +28,7 @@ function requireEnv(name: string): string {
   return value;
 }
 
-function toAlgoliaRecord(product: ProductForSync) {
+function toAlgoliaRecord(product: ProductForSearch) {
   return {
     objectID: product.handle,
     title: product.title,
@@ -37,10 +38,10 @@ function toAlgoliaRecord(product: ProductForSync) {
     productType: product.productType,
     vendor: product.vendor,
     availableForSale: product.availableForSale,
-    price: Number(product.priceRange.minVariantPrice.amount),
-    currencyCode: product.priceRange.minVariantPrice.currencyCode,
+    price: Number(product.price.amount),
+    currencyCode: product.price.currencyCode,
     imageUrl: product.featuredImage?.url ?? null,
-    variantId: product.selectedOrFirstAvailableVariant?.id ?? null,
+    variantId: product.variant?.id ?? null,
   };
 }
 

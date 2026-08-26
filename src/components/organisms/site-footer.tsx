@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { ShoppingBag } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { BrandLogo } from "@/components/atoms/brand-logo";
+import { IconButton } from "@/components/atoms/icon-button";
 import { getFooter } from "@/lib/contentstack-queries";
 import type { SVGProps } from "react";
 
@@ -74,27 +74,19 @@ export async function SiteFooter() {
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
           <div className="col-span-2 flex flex-col gap-3 sm:col-span-1">
-            <Link
-              href="/"
-              className="flex items-center gap-2 font-heading text-base font-semibold tracking-tight text-foreground"
-            >
-              <ShoppingBag className="size-5" aria-hidden="true" />
-              {brandName}
-            </Link>
+            <BrandLogo name={brandName} size="sm" />
             <p className="text-sm text-muted-foreground">{tagline}</p>
             <div className="mt-1 flex items-center gap-1">
               {socialLinks.map(({ href, label, icon }) => {
                 const Icon = SOCIAL_ICONS[icon];
                 return (
-                  <Button
+                  <IconButton
                     key={label}
+                    icon={<Icon />}
+                    label={label}
                     variant="ghost"
-                    size="icon-sm"
                     render={<a href={href} target="_blank" rel="noopener noreferrer" />}
-                  >
-                    <Icon className="size-4" aria-hidden="true" />
-                    <span className="sr-only">{label}</span>
-                  </Button>
+                  />
                 );
               })}
             </div>

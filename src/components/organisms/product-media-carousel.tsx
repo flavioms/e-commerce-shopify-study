@@ -4,19 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/atoms/icon-button";
 import { cn } from "@/lib/utils";
+import type { ProductMediaItem } from "@/types/product";
 
-export type ProductMediaItem =
-  | { kind: "image"; id: string; url: string; alt: string | null }
-  | {
-      kind: "video";
-      id: string;
-      alt: string | null;
-      previewUrl: string | null;
-      sources: { url: string; mimeType: string }[];
-    }
-  | { kind: "external-video"; id: string; alt: string | null; embedUrl: string };
+export type { ProductMediaItem };
 
 export interface ProductMediaCarouselProps {
   items: ProductMediaItem[];
@@ -132,26 +124,24 @@ export function ProductMediaCarousel({ items, fallbackAlt }: ProductMediaCarouse
           ))}
         </div>
 
-        <Button
+        <IconButton
           type="button"
+          icon={<ChevronLeft />}
+          label="Previous item"
           variant="outline"
           size="icon"
-          aria-label="Previous item"
           onClick={() => scrollToIndex(activeIndex - 1)}
           className="absolute top-1/2 left-3 -translate-y-1/2 bg-background/80 opacity-0 backdrop-blur transition-opacity group-hover/carousel:opacity-100 focus-visible:opacity-100"
-        >
-          <ChevronLeft />
-        </Button>
-        <Button
+        />
+        <IconButton
           type="button"
+          icon={<ChevronRight />}
+          label="Next item"
           variant="outline"
           size="icon"
-          aria-label="Next item"
           onClick={() => scrollToIndex(activeIndex + 1)}
           className="absolute top-1/2 right-3 -translate-y-1/2 bg-background/80 opacity-0 backdrop-blur transition-opacity group-hover/carousel:opacity-100 focus-visible:opacity-100"
-        >
-          <ChevronRight />
-        </Button>
+        />
       </div>
 
       <div className="flex items-center justify-center gap-2">

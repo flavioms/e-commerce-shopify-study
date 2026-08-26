@@ -6,9 +6,9 @@ import { ChevronLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { CartLineItem } from "@/components/cart-line-item";
+import { CartLineItem } from "@/components/organisms/cart-line-item";
 import { formatMoney } from "@/lib/currency";
-import { useCart } from "@/components/cart-provider";
+import { useCart } from "@/components/providers/cart-provider";
 import { updateBuyerEmailAction, type CartActionState } from "@/lib/cart-actions";
 
 const initialEmailState: CartActionState = { status: "idle" };

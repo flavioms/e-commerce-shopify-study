@@ -5,9 +5,15 @@ import { InstantSearch, SearchBox, Hits, useSearchBox, useHits } from "react-ins
 import type { Hit } from "instantsearch.js";
 
 import { searchClient, ALGOLIA_INDEX_NAME } from "@/lib/algolia-client";
-import { ProductCard } from "@/components/product-card";
+import { ProductCard } from "@/components/organisms/product-card";
+import { PRODUCT_GRID_CLASSNAME } from "@/components/organisms/product-grid";
+import { EmptyState } from "@/components/atoms/empty-state";
+import type { Product } from "@/types/product";
 
+// Algolia's own flat record shape — this data source's external representation,
+// distinct from the domain `Product`. `hitToProduct()` below is its adapter.
 export type ProductHit = {
+  objectID: string;
   title: string;
   description: string;
   price: number;
@@ -18,26 +24,27 @@ export type ProductHit = {
   handle: string;
 };
 
+function hitToProduct(hit: Hit<ProductHit>): Product {
+  return {
+    id: hit.objectID,
+    title: hit.title,
+    handle: hit.handle,
+    description: hit.description,
+    price: { amount: hit.price, currencyCode: hit.currencyCode },
+    featuredImage: hit.imageUrl ? { url: hit.imageUrl, altText: hit.title } : null,
+    variant: hit.variantId ? { id: hit.variantId, availableForSale: hit.availableForSale } : null,
+  };
+}
+
 function ProductHitCard({ hit }: { hit: Hit<ProductHit> }) {
-  return (
-    <ProductCard
-      title={hit.title}
-      description={hit.description}
-      price={{ amount: hit.price, currencyCode: hit.currencyCode }}
-      imageUrl={hit.imageUrl ?? "/file.svg"}
-      imageAlt={hit.title}
-      detailsHref={`/products/${hit.handle}`}
-      variantId={hit.variantId}
-      available={hit.availableForSale}
-    />
-  );
+  return <ProductCard product={hitToProduct(hit)} />;
 }
 
 function ProductHits() {
   return (
     <Hits<ProductHit>
       hitComponent={ProductHitCard}
-      classNames={{ list: "grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3" }}
+      classNames={{ list: PRODUCT_GRID_CLASSNAME }}
     />
   );
 }
@@ -71,11 +78,7 @@ function SearchOrFallback({ fallback }: { fallback?: ReactNode }) {
   }
 
   if (items.length === 0) {
-    return (
-      <p className="py-16 text-center text-sm text-muted-foreground">
-        No products matched your search.
-      </p>
-    );
+    return <EmptyState className="py-16">No products matched your search.</EmptyState>;
   }
 
   return <ProductHits />;
