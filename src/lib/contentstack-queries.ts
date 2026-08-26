@@ -41,3 +41,14 @@ export async function getHomePage() {
   const result = await Stack.contentType('home').entry().query().find<HomePageEntry>();
   return result.entries?.[0] ?? null;
 }
+
+export type ContactEntry = BaseEntry & {
+  address: string;
+  contact_number: number[];
+  email_address: string;
+};
+
+export async function getContacts() {
+  const result = await Stack.contentType('contact').entry().query().find<ContactEntry>();
+  return result.entries ?? [];
+}
