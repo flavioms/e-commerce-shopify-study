@@ -1,36 +1,198 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# flavio-commerce
 
-## Getting Started
+> **This is a study/learning project.** It exists to explore how a Next.js
+> storefront can be composed from several real third-party services (Shopify,
+> Contentstack, Algolia) — it is not a production store, and the catalog,
+> home page copy, and static pages (About, Careers, FAQ, ...) are all seeded
+> with placeholder/demo content. Don't point it at a real store's credentials
+> expecting production-grade behavior (in particular: nothing here builds a
+> custom checkout — it hands off to Shopify's own hosted checkout, since the
+> Storefront API doesn't support more than that with a private token).
 
-First, run the development server:
+A Next.js (App Router) storefront that pulls its catalog from **Shopify**
+(Storefront API), its marketing content (home page, header/footer, About/
+Careers/FAQ/...) from **Contentstack**, and product search from **Algolia**
+— with a cookie-based cart backed by React Server Functions and Zustand.
+
+## Stack
+
+- **Next.js 16** (App Router, Turbopack, React Server Functions, React Compiler)
+- **React 19**
+- **Shopify Storefront API** — catalog, cart mutations, checkout handoff
+- **Contentstack** — home page, header/footer, static content pages, FAQ, contact
+- **Algolia** (`react-instantsearch`) — product search
+- **Zustand** — client-side cart store (see [Architecture notes](#architecture-notes))
+- **Tailwind CSS v4** + **shadcn/ui** (on top of [Base UI](https://base-ui.com/) primitives)
+
+## Features
+
+- Product listing (ISR) and detail pages, sourced live from Shopify
+- Cart: add/update/remove line items via Server Functions, cookie-based
+  session, slide-out drawer — state shared across the app through a Zustand
+  store (no Context provider wrapping the tree)
+- Checkout: reviews the cart, lets the buyer set an email, then hands off to
+  Shopify's hosted checkout
+- Product search (Algolia `react-instantsearch`), with the on-page listing as
+  a fallback while the search box is empty
+- Home page, header, footer, and static pages (About, Careers, Privacy,
+  Terms, Shipping & Returns, Track Order, FAQ, Contact) all authored in
+  Contentstack — nothing here is hardcoded copy
+- SEO: dynamic `sitemap.xml` and `robots.txt`, per-page canonical URLs and
+  Open Graph/Twitter metadata, JSON-LD `Product` structured data on product
+  pages, and a per-entry "exclude from search indexing" flag in Contentstack
+- `loading.tsx` route-level skeletons so navigation streams in instead of
+  blocking on data
+
+## Getting started
+
+1. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+2. Copy `.env.example` to `.env.local` and fill in real values (see the
+   comments in that file for where each token comes from):
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+3. Run the dev server:
+
+   ```bash
+   npm run dev
+   ```
+
+   Open [http://localhost:3000](http://localhost:3000).
+
+## Environment variables
+
+See `.env.example` for the full list with inline comments. Grouped by service:
+
+| Variable | Used for |
+| --- | --- |
+| `NEXT_PUBLIC_SITE_URL` | Canonical public URL — `metadataBase`, `sitemap.xml`, `robots.txt`, JSON-LD |
+| `NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_PRIVATE_TOKEN` | Shopify Storefront API (catalog, cart) |
+| `CONTENTSTACK_API_KEY`, `CONTENTSTACK_DELIVERY_TOKEN` | Contentstack Delivery API (read, used at request time) |
+| `CONTENTSTACK_MANAGEMENT_TOKEN` | Contentstack Management API — **scripts only**, never used by the app itself |
+| `ALGOLIA_APP_ID`, `ALGOLIA_ADMIN_KEY`, `ALGOLIA_INDEX_NAME` | Algolia admin — **scripts only** (`sync-algolia`) |
+| `NEXT_PUBLIC_ALGOLIA_APP_ID`, `NEXT_PUBLIC_ALGOLIA_SEARCH_KEY`, `NEXT_PUBLIC_ALGOLIA_INDEX_NAME` | Algolia search-only key, used client-side by `/search` |
+
+## Content & data setup scripts
+
+The catalog comes from Shopify directly — no setup needed there beyond the
+env vars. Everything else (Contentstack content types/entries, the Algolia
+index) needs to be created once, via the scripts in `scripts/`:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# 1. Create the Contentstack content types this app expects
+#    (navigation, footer, page, faq_item — home/contact predate this repo)
+npm run setup-contentstack-content-types
+
+# 2. Seed placeholder content: header/footer, About/Careers/Privacy/Terms/
+#    Shipping & Returns/Track Order pages, and FAQ items
+npm run seed-contentstack-site-content
+
+# 3. Seed a couple of placeholder contact cards
+npm run seed-contentstack-contacts
+
+# 4. Push the Shopify catalog into Algolia (needed before /search works)
+npm run sync-algolia
+
+# 5. Optional: replace the home page's placeholder hero/category/promo
+#    content with real products from the Shopify catalog
+npm run sync-contentstack-home
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+All of these are idempotent — safe to re-run after editing the placeholder
+content inside each script.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Available scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the dev server (Turbopack) |
+| `npm run build` | Production build |
+| `npm run start` | Serve the production build |
+| `npm run lint` | ESLint |
+| `npm run sync-algolia` | Push the full Shopify catalog into the Algolia index |
+| `npm run sync-contentstack-home` | Replace the home page's hero/category/promo with real Shopify products |
+| `npm run setup-contentstack-content-types` | Create the Contentstack content types this app expects |
+| `npm run seed-contentstack-site-content` | Seed header/footer/static pages/FAQ placeholder content |
+| `npm run seed-contentstack-contacts` | Seed placeholder contact cards |
 
-## Learn More
+## Project structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+  app/                          routes (App Router)
+    page.tsx                    — home (Contentstack)
+    products/                   — product listing (ISR) + loading.tsx
+    products/[product]/         — product detail (ISR) + loading.tsx + not-found.tsx
+    search/                     — Algolia-powered search
+                                   (layout.tsx carries its metadata — the page
+                                   itself is a Client Component)
+    checkout/                   — cart review → Shopify hosted checkout handoff
+    contact/, faq/               — Contentstack-backed static pages
+    [slug]/                     — any other Contentstack `page` entry
+    sitemap.ts, robots.ts       — generated from the Shopify catalog + Contentstack pages
+    loading.tsx                 — generic fallback for routes without their own
+  components/
+    ui/                         — shadcn primitives (Button, Card, Sheet, Separator, ...)
+    atoms/                      — small shared building blocks (IconButton, BrandLogo,
+                                   Price, CountBadge, EmptyState)
+    molecules/                  — QuantityStepper
+    organisms/                  — SiteHeader, SiteFooter, CartDrawer, ProductCard,
+                                   ProductGrid, ProductSearch, ProductMediaCarousel, ...
+    providers/                  — CartInitializer (kicks off the cart store's initial fetch)
+  types/
+    product.ts                  — the canonical `Product` domain type (see below)
+  lib/
+    shopify.ts, shopify-queries.ts, shopify-cart.ts   — Shopify Storefront API client + queries
+    contentstack.ts, contentstack-queries.ts          — Contentstack Delivery SDK + queries
+    algolia-client.ts           — Algolia search client (browser-safe, search-only key)
+    cart-store.ts                — Zustand cart store + useCart() hook
+    cart-actions.ts              — cart Server Functions (add/update/remove line items)
+    json-ld.ts                   — schema.org structured-data builders
+    site.ts, currency.ts, utils.ts
+  hooks/
+    use-locale.ts                — hydration-safe browser-locale hook
+scripts/                        one-off/CLI setup & seed scripts (run via `npm run <name>`, tsx)
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Architecture notes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**Domain types follow an onion pattern.** `src/types/product.ts` defines one
+canonical `Product` shape (plus `ProductDetail`/`ProductForSearch` variants).
+Every data source has its own small adapter that maps its raw external shape
+into it at the boundary — `toProduct()`/`toMediaItems()` in
+`shopify-queries.ts` for Shopify's GraphQL response, `hitToProduct()` in
+`product-search.tsx` for Algolia's flat record. Nothing outside those
+adapters — pages, components, scripts — ever deals with GraphQL edges/nodes
+or Algolia's record format; they all just consume `Product`.
 
-## Deploy on Vercel
+**Components follow Atomic Design.** `components/ui/` (shadcn primitives) is
+left untouched; everything built on top of it is organized into
+`atoms/ → molecules/ → organisms/ → providers/`, with shared pieces
+(`IconButton`, `QuantityStepper`, ...) extracted once instead of duplicated
+across the header, footer, and cart drawer.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**Cart state lives in a Zustand store**, not React Context. `CartInitializer`
+replaces the old Context provider — it doesn't wrap the tree, it just
+triggers the store's initial fetch once on mount (the cart cookie is
+httpOnly, so the client has to ask the server for its contents). Any client
+component reads it directly via `useCart()`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Rendering strategy.** Most routes are Server Components with
+`revalidate = 60` (ISR) rather than fully static or fully dynamic — content
+from Shopify/Contentstack can change without a redeploy, but pages still
+serve from cache between revalidations. `/checkout` and `/search` are the
+exceptions (Client Components, since they depend on client-only state/hooks).
+
+## Learn more
+
+This project was bootstrapped with
+[`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+See the [Next.js documentation](https://nextjs.org/docs) for framework
+features and APIs.
