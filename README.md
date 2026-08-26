@@ -22,6 +22,7 @@ Careers/FAQ/...) from **Contentstack**, and product search from **Algolia**
 - **Contentstack** — home page, header/footer, static content pages, FAQ, contact
 - **Algolia** (`react-instantsearch`) — product search
 - **Zustand** — client-side cart store (see [Architecture notes](#architecture-notes))
+- **OpenTelemetry** (`@vercel/otel`) → **New Relic** — request tracing and error reporting, via New Relic's OTLP ingest endpoint
 - **Tailwind CSS v4** + **shadcn/ui** (on top of [Base UI](https://base-ui.com/) primitives)
 
 ## Features
@@ -42,6 +43,9 @@ Careers/FAQ/...) from **Contentstack**, and product search from **Algolia**
   pages, and a per-entry "exclude from search indexing" flag in Contentstack
 - `loading.tsx` route-level skeletons so navigation streams in instead of
   blocking on data
+- Observability: every request is traced with OpenTelemetry and exported to
+  New Relic (server errors are recorded onto the active span, not just
+  logged) — optional, the app runs fine without it configured
 
 ## Getting started
 
@@ -78,6 +82,8 @@ See `.env.example` for the full list with inline comments. Grouped by service:
 | `CONTENTSTACK_MANAGEMENT_TOKEN` | Contentstack Management API — **scripts only**, never used by the app itself |
 | `ALGOLIA_APP_ID`, `ALGOLIA_ADMIN_KEY`, `ALGOLIA_INDEX_NAME` | Algolia admin — **scripts only** (`sync-algolia`) |
 | `NEXT_PUBLIC_ALGOLIA_APP_ID`, `NEXT_PUBLIC_ALGOLIA_SEARCH_KEY`, `NEXT_PUBLIC_ALGOLIA_INDEX_NAME` | Algolia search-only key, used client-side by `/search` |
+| `NEW_RELIC_LICENSE_KEY` | New Relic OTLP ingest — optional, see [Observability](#observability) |
+| `NEW_RELIC_OTLP_ENDPOINT` | Override for an EU-region New Relic account — optional, defaults to the US endpoint |
 
 ## Content & data setup scripts
 
@@ -148,6 +154,7 @@ src/
     providers/                  — CartInitializer (kicks off the cart store's initial fetch)
   types/
     product.ts                  — the canonical `Product` domain type (see below)
+  instrumentation.ts             — OpenTelemetry setup, exported to New Relic (see Observability)
   lib/
     shopify.ts, shopify-queries.ts, shopify-cart.ts   — Shopify Storefront API client + queries
     contentstack.ts, contentstack-queries.ts          — Contentstack Delivery SDK + queries
@@ -159,6 +166,32 @@ src/
   hooks/
     use-locale.ts                — hydration-safe browser-locale hook
 scripts/                        one-off/CLI setup & seed scripts (run via `npm run <name>`, tsx)
+```
+
+## Observability
+
+Every request is instrumented with [OpenTelemetry](https://opentelemetry.io/)
+(`src/instrumentation.ts`, via `@vercel/otel`) and exported straight to
+[New Relic](https://newrelic.com/)'s OTLP ingest endpoint — no OpenTelemetry
+Collector needed, and no proprietary `newrelic` Node agent: since New Relic
+accepts standard OTLP directly, the app only ever depends on vendor-neutral
+OpenTelemetry APIs, so pointing it at a different backend later (Honeycomb,
+Datadog, an in-house collector, ...) is an env var change, not a rewrite.
+
+- **Traces**: every request gets a root span (method + route), plus Next.js's
+  own built-in spans for rendering, data fetching, `fetch()` calls, etc.
+- **Errors**: server errors (Server Components, Route Handlers, Server
+  Actions) are recorded onto the active span via `onRequestError` — they show
+  up attached to the trace that produced them, not as a bare log line.
+- **Optional by design**: without `NEW_RELIC_LICENSE_KEY` set, OpenTelemetry
+  still initializes (so nothing crashes and custom spans still work locally),
+  it just has nowhere to export to — a warning is logged once at startup.
+
+To wire it up, set in `.env.local` (or your deploy platform's env vars):
+
+```bash
+NEW_RELIC_LICENSE_KEY=your-ingest-license-key   # Account settings > API keys > "Ingest - License"
+# NEW_RELIC_OTLP_ENDPOINT=https://otlp.eu01.nr-data.net:4318   # only for an EU-region account
 ```
 
 ## Architecture notes
