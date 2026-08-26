@@ -16,7 +16,7 @@ import { CountBadge } from "@/components/atoms/count-badge";
 import { EmptyState } from "@/components/atoms/empty-state";
 import { CartLineItem } from "@/components/organisms/cart-line-item";
 import { formatMoney } from "@/lib/currency";
-import { useCart } from "@/components/providers/cart-provider";
+import { useCart } from "@/lib/cart-store";
 
 export function CartDrawer() {
   const { cart, isLoading } = useCart();

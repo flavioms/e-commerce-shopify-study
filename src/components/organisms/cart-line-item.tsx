@@ -6,7 +6,7 @@ import { Trash2 } from "lucide-react";
 
 import { IconButton } from "@/components/atoms/icon-button";
 import { QuantityStepper } from "@/components/molecules/quantity-stepper";
-import { useCart } from "@/components/providers/cart-provider";
+import { useCart } from "@/lib/cart-store";
 import { removeCartLineAction, setCartLineQuantityAction } from "@/lib/cart-actions";
 import type { Cart } from "@/lib/shopify-cart";
 import { formatMoney } from "@/lib/currency";

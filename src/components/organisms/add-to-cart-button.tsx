@@ -5,7 +5,7 @@ import { ShoppingCart } from "lucide-react";
 
 import { Button, type buttonVariants } from "@/components/ui/button";
 import { addToCartAction, type AddToCartState } from "@/lib/cart-actions";
-import { useCart } from "@/components/providers/cart-provider";
+import { useCart } from "@/lib/cart-store";
 import type { VariantProps } from "class-variance-authority";
 
 const initialState: AddToCartState = { status: "idle" };

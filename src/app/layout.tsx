@@ -4,7 +4,7 @@ import "./globals.css";
 
 import { SiteFooter } from "@/components/organisms/site-footer";
 import { SiteHeader } from "@/components/organisms/site-header";
-import { CartProvider } from "@/components/providers/cart-provider";
+import { CartInitializer } from "@/components/providers/cart-initializer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,11 +31,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <CartProvider>
-          <SiteHeader />
-          <main className="flex flex-1 flex-col">{children}</main>
-          <SiteFooter />
-        </CartProvider>
+        <CartInitializer />
+        <SiteHeader />
+        <main className="flex flex-1 flex-col">{children}</main>
+        <SiteFooter />
       </body>
     </html>
   );
