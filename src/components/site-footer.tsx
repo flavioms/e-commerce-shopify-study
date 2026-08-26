@@ -3,6 +3,7 @@ import { ShoppingBag } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { getFooter } from "@/lib/contentstack-queries";
 import type { SVGProps } from "react";
 
 // lucide-react no longer ships trademarked brand glyphs, so the social
@@ -33,40 +34,41 @@ function FacebookIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-const footerLinks = [
-  {
-    heading: "Shop",
-    links: [
-      { href: "/products", label: "All products" },
-      { href: "/products?filter=new", label: "New arrivals" },
-      { href: "/products?filter=best-sellers", label: "Best sellers" },
-    ],
-  },
-  {
-    heading: "Company",
-    links: [
-      { href: "/about", label: "About" },
-      { href: "/careers", label: "Careers" },
-      { href: "/contact", label: "Contact" },
-    ],
-  },
-  {
-    heading: "Support",
-    links: [
-      { href: "/faq", label: "FAQ" },
-      { href: "/shipping-returns", label: "Shipping & returns" },
-      { href: "/track-order", label: "Track order" },
-    ],
-  },
+const SOCIAL_ICONS = {
+  instagram: InstagramIcon,
+  twitter: TwitterIcon,
+  facebook: FacebookIcon,
+} as const;
+
+const FOOTER_COLUMNS = ["Shop", "Company", "Support"] as const;
+
+const FALLBACK_BRAND_NAME = "flavio-commerce";
+const FALLBACK_TAGLINE = "Thoughtfully made products, delivered to your door.";
+const FALLBACK_COPYRIGHT_TEXT = "flavio-commerce. All rights reserved.";
+const FALLBACK_FOOTER_LINKS: { column: (typeof FOOTER_COLUMNS)[number]; label: string; href: string }[] = [
+  { column: "Shop", label: "All products", href: "/products" },
+  { column: "Company", label: "Contact", href: "/contact" },
+];
+const FALLBACK_SOCIAL_LINKS: { label: string; href: string; icon: keyof typeof SOCIAL_ICONS }[] = [
+  { href: "https://instagram.com", label: "Instagram", icon: "instagram" },
+  { href: "https://twitter.com", label: "Twitter", icon: "twitter" },
+  { href: "https://facebook.com", label: "Facebook", icon: "facebook" },
+];
+const FALLBACK_LEGAL_LINKS = [
+  { href: "/privacy", label: "Privacy" },
+  { href: "/terms", label: "Terms" },
 ];
 
-const socialLinks = [
-  { href: "https://instagram.com", label: "Instagram", icon: InstagramIcon },
-  { href: "https://twitter.com", label: "Twitter", icon: TwitterIcon },
-  { href: "https://facebook.com", label: "Facebook", icon: FacebookIcon },
-];
+export async function SiteFooter() {
+  const footer = await getFooter();
 
-export function SiteFooter() {
+  const brandName = footer?.brand_name || FALLBACK_BRAND_NAME;
+  const tagline = footer?.tagline || FALLBACK_TAGLINE;
+  const copyrightText = footer?.copyright_text || FALLBACK_COPYRIGHT_TEXT;
+  const footerLinks = footer?.footer_links?.length ? footer.footer_links : FALLBACK_FOOTER_LINKS;
+  const socialLinks = footer?.social_links?.length ? footer.social_links : FALLBACK_SOCIAL_LINKS;
+  const legalLinks = footer?.legal_links?.length ? footer.legal_links : FALLBACK_LEGAL_LINKS;
+
   return (
     <footer className="border-t border-border bg-muted/30">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
@@ -77,60 +79,63 @@ export function SiteFooter() {
               className="flex items-center gap-2 font-heading text-base font-semibold tracking-tight text-foreground"
             >
               <ShoppingBag className="size-5" aria-hidden="true" />
-              flavio-commerce
+              {brandName}
             </Link>
-            <p className="text-sm text-muted-foreground">
-              Thoughtfully made products, delivered to your door.
-            </p>
+            <p className="text-sm text-muted-foreground">{tagline}</p>
             <div className="mt-1 flex items-center gap-1">
-              {socialLinks.map(({ href, label, icon: Icon }) => (
-                <Button
-                  key={label}
-                  variant="ghost"
-                  size="icon-sm"
-                  render={
-                    <a href={href} target="_blank" rel="noopener noreferrer" />
-                  }
-                >
-                  <Icon className="size-4" aria-hidden="true" />
-                  <span className="sr-only">{label}</span>
-                </Button>
-              ))}
+              {socialLinks.map(({ href, label, icon }) => {
+                const Icon = SOCIAL_ICONS[icon];
+                return (
+                  <Button
+                    key={label}
+                    variant="ghost"
+                    size="icon-sm"
+                    render={<a href={href} target="_blank" rel="noopener noreferrer" />}
+                  >
+                    <Icon className="size-4" aria-hidden="true" />
+                    <span className="sr-only">{label}</span>
+                  </Button>
+                );
+              })}
             </div>
           </div>
 
-          {footerLinks.map((column) => (
-            <div key={column.heading} className="flex flex-col gap-3">
-              <h3 className="text-sm font-medium text-foreground">
-                {column.heading}
-              </h3>
-              <ul className="flex flex-col gap-2">
-                {column.links.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          {FOOTER_COLUMNS.map((column) => {
+            const links = footerLinks.filter((link) => link.column === column);
+            if (links.length === 0) return null;
+
+            return (
+              <div key={column} className="flex flex-col gap-3">
+                <h3 className="text-sm font-medium text-foreground">{column}</h3>
+                <ul className="flex flex-col gap-2">
+                  {links.map((link) => (
+                    <li key={link.href}>
+                      <Link
+                        href={link.href}
+                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
         </div>
 
         <Separator className="my-8" />
 
         <div className="flex flex-col items-center justify-between gap-4 text-xs text-muted-foreground sm:flex-row">
-          <p>&copy; {new Date().getFullYear()} flavio-commerce. All rights reserved.</p>
+          <p>
+            &copy; {new Date().getFullYear()} {copyrightText}
+          </p>
           <div className="flex items-center gap-4">
-            <Link href="/privacy" className="hover:text-foreground">
-              Privacy
-            </Link>
-            <Link href="/terms" className="hover:text-foreground">
-              Terms
-            </Link>
+            {legalLinks.map((link) => (
+              <Link key={link.href} href={link.href} className="hover:text-foreground">
+                {link.label}
+              </Link>
+            ))}
           </div>
         </div>
       </div>
