@@ -29,12 +29,21 @@ type PromoBanner = {
   cta_link: string;
 };
 
+// The stack's reusable "SEO" global field, referenced by `home` and `page`.
+export type Seo = {
+  meta_title: string;
+  meta_description: string;
+  keywords: string;
+  enable_search_indexing: boolean;
+} | null;
+
 export type HomePageEntry = BaseEntry & {
   hero: Hero;
   // "Featured Categories" is a Contentstack `blocks` field: each item is keyed by
   // its block uid — this stack only defines one block type ("instances").
   featured_categories: { instances: FeaturedCategory }[];
   promo_banner: PromoBanner;
+  seo: Seo;
 };
 
 export async function getHomePage() {
@@ -98,6 +107,7 @@ export type PageEntry = BaseEntry & {
   slug: string;
   summary: string;
   body: string;
+  seo: Seo;
 };
 
 export async function getPageBySlug(slug: string) {

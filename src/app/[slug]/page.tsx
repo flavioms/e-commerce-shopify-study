@@ -1,8 +1,21 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { getPageBySlug } from "@/lib/contentstack-queries";
 
 export const revalidate = 60; // ISR
+
+export async function generateMetadata(props: PageProps<"/[slug]">): Promise<Metadata> {
+  const { slug } = await props.params;
+  const page = await getPageBySlug(slug);
+  if (!page) return {};
+
+  return {
+    title: page.seo?.meta_title || page.title,
+    description: page.seo?.meta_description || page.summary || undefined,
+    robots: page.seo?.enable_search_indexing === false ? { index: false } : undefined,
+  };
+}
 
 export default async function ContentPage(props: PageProps<"/[slug]">) {
   const { slug } = await props.params;

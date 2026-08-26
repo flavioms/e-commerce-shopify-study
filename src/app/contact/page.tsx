@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Mail, MapPin, Phone } from "lucide-react";
 
@@ -5,6 +6,11 @@ import { getContacts } from "@/lib/contentstack-queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const revalidate = 60; // ISR
+
+export const metadata: Metadata = {
+  title: "Contact Us",
+  description: "Reach out to the flavio-commerce team closest to you.",
+};
 
 export default async function ContactPage() {
   const contacts = await getContacts();

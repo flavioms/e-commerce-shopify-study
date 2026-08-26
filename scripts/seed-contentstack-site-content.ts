@@ -167,7 +167,17 @@ async function main() {
   ];
 
   for (const page of pages) {
-    await upsertByTitle('page', page);
+    await upsertByTitle('page', {
+      ...page,
+      seo: {
+        // No manual "| flavio-commerce" suffix here: the root layout's title
+        // template already appends it for every child route, this page included.
+        meta_title: page.title as string,
+        meta_description: page.summary,
+        keywords: '',
+        enable_search_indexing: true,
+      },
+    });
   }
 
   const faqItems: Entry[] = [

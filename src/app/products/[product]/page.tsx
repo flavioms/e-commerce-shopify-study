@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
@@ -10,6 +11,20 @@ import { AddToCartButton } from '@/components/add-to-cart-button';
 import { Price } from '@/components/price';
 
 export const revalidate = 60; // ISR
+
+export async function generateMetadata(props: PageProps<'/products/[product]'>): Promise<Metadata> {
+    const { product: handle } = await props.params;
+    if (!handle) return {};
+
+    const { product } = await getProductByHandle(handle);
+    if (!product) return {};
+
+    return {
+        title: product.title,
+        description: product.description || `Shop ${product.title} at flavio-commerce.`,
+        openGraph: product.featuredImage ? { images: [{ url: product.featuredImage.url }] } : undefined,
+    };
+}
 
 export default async function ProductDetailsPage(props: PageProps<'/products/[product]'>) {
     const { product: handle } = await props.params;

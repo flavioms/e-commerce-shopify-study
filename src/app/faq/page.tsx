@@ -1,9 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { getFaqItems } from "@/lib/contentstack-queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const revalidate = 60; // ISR
+
+export const metadata: Metadata = {
+  title: "FAQ",
+  description: "Answers to common questions about shipping, returns, and orders.",
+};
 
 export default async function FaqPage() {
   const faqItems = await getFaqItems();

@@ -40,6 +40,22 @@ function groupField(uid: string, display_name: string, schema: Field[], extra: F
   };
 }
 
+// The stack already ships a reusable "SEO" global field (meta_title, meta_description,
+// keywords, enable_search_indexing) — reference it instead of redefining those fields.
+function seoField(): Field {
+  return {
+    data_type: 'global_field',
+    display_name: 'SEO',
+    reference_to: 'seo',
+    uid: 'seo',
+    field_metadata: { description: '' },
+    mandatory: false,
+    multiple: false,
+    unique: false,
+    non_localizable: false,
+  };
+}
+
 const CONTENT_TYPES: { uid: string; title: string; description: string; singleton: boolean; schema: Field[] }[] = [
   {
     uid: 'navigation',
@@ -91,6 +107,7 @@ const CONTENT_TYPES: { uid: string; title: string; description: string; singleto
       textField('slug', 'Slug', { mandatory: true, unique: true }),
       textField('summary', 'Summary'),
       textField('body', 'Body', { field_metadata: { description: '', default_value: '', multiline: true } }),
+      seoField(),
     ],
   },
   {
@@ -126,6 +143,27 @@ async function getContentType(uid: string): Promise<{ title: string; schema: Fie
   }
 }
 
+/** Adds `field` to an existing content type's schema, unless it's already there. */
+async function ensureField(contentTypeUid: string, field: Field) {
+  const contentType = await getContentType(contentTypeUid);
+  if (!contentType) {
+    console.log(`Skipping "${contentTypeUid}.${field.uid}" — content type doesn't exist.`);
+    return;
+  }
+  if (contentType.schema.some((existing) => existing.uid === field.uid)) {
+    console.log(`Skipping "${contentTypeUid}.${field.uid}" — field already exists.`);
+    return;
+  }
+
+  console.log(`Adding field "${field.uid}" to "${contentTypeUid}"...`);
+  await cma(`/content_types/${contentTypeUid}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      content_type: { title: contentType.title, schema: [...contentType.schema, field] },
+    }),
+  });
+}
+
 async function main() {
   for (const contentType of CONTENT_TYPES) {
     if (await getContentType(contentType.uid)) {
@@ -147,6 +185,11 @@ async function main() {
       }),
     });
   }
+
+  // `home` predates this script, and `page` may have been created by an earlier
+  // version of it (before `seo` was added here) — ensure both have it either way.
+  await ensureField('home', seoField());
+  await ensureField('page', seoField());
 
   console.log('Done.');
 }

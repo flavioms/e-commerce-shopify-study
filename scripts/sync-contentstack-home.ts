@@ -1,18 +1,18 @@
 // scripts/sync-contentstack-home.ts
 //
-// Updates the Contentstack "home" singleton entry with real data from the
+// Updates the Contentstack `home` singleton entry with real data from the
 // Shopify catalog: hero, featured categories, and promo banner all reference
-// real products - real title/description/price-derived copy, and a real
+// real products — real title/description/price-derived copy, and a real
 // product photo re-uploaded as a Contentstack asset (Contentstack's image
 // fields reference assets in its own library, they can't point at an
-// arbitrary external URL) - then publishes the entry so the Delivery API
+// arbitrary external URL) — then publishes the entry so the Delivery API
 // (and the home page) picks it up.
 //
 // Usage: npm run sync-contentstack-home
 //
 // Requires (see .env.local):
 //   NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN / SHOPIFY_STOREFRONT_PRIVATE_TOKEN
-//   CONTENTSTACK_API_KEY / CONTENTSTACK_MANAGEMENT_TOKEN (read/write on the stack -
+//   CONTENTSTACK_API_KEY / CONTENTSTACK_MANAGEMENT_TOKEN (read/write on the stack —
 //     the CONTENTSTACK_DELIVERY_TOKEN used by the app is read-only and won't work here)
 
 import { getAllProducts, type ProductForSync } from '../src/lib/shopify-queries';
@@ -46,7 +46,7 @@ async function uploadProductImage(product: ProductForSync): Promise<Contentstack
   const asset = body.asset as ContentstackAsset;
 
   // A new asset isn't visible via the Delivery API (and so wouldn't render on the home
-  // page) until it's published too - publishing the entry alone isn't enough.
+  // page) until it's published too — publishing the entry alone isn't enough.
   await cma(`/assets/${asset.uid}/publish`, {
     method: 'POST',
     body: JSON.stringify({ asset: { environments: [ENVIRONMENT], locales: [LOCALE] } }),
@@ -116,7 +116,7 @@ async function main() {
       heading: hero.title,
       subheading: hero.description.trim() || `Starting at ${productPrice(hero)}`,
       // Contentstack `file` fields take the asset uid directly (a plain string),
-      // not `{ uid }` like reference fields - confirmed against the live API.
+      // not `{ uid }` like reference fields — confirmed against the live API.
       image: heroAsset.uid,
       cta_label: 'Shop now',
       cta_link: `/products/${hero.handle}`,
@@ -134,6 +134,12 @@ async function main() {
       image: promoAsset.uid,
       cta_label: 'Explore',
       cta_link: `/products/${promo.handle}`,
+    },
+    seo: {
+      meta_title: 'flavio-commerce — Performance apparel and gear',
+      meta_description: `Shop ${hero.title} and more — thoughtfully made products, delivered to your door.`,
+      keywords: [hero.productType, promo.productType, 'apparel', 'gear'].filter(Boolean).join(', '),
+      enable_search_indexing: true,
     },
   };
 

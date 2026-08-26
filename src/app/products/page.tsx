@@ -1,8 +1,15 @@
 // src/app/products/page.tsx
+import type { Metadata } from 'next';
+
 import { getProducts } from '@/lib/shopify-queries';
 import { ProductCard } from '@/components/product-card';
 
 export const revalidate = 60; // ISR
+
+export const metadata: Metadata = {
+  title: 'All Products',
+  description: 'Browse the full flavio-commerce catalog.',
+};
 
 export default async function ProductsPage() {
   const data = await getProducts();

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
@@ -6,6 +7,16 @@ import { getHomePage } from "@/lib/contentstack-queries";
 import { Button } from "@/components/ui/button";
 
 export const revalidate = 60; // ISR
+
+export async function generateMetadata(): Promise<Metadata> {
+  const home = await getHomePage();
+  if (!home) return {};
+
+  return {
+    title: home.seo?.meta_title || undefined,
+    description: home.seo?.meta_description || home.hero?.subheading || undefined,
+  };
+}
 
 export default async function Home() {
   const home = await getHomePage();
