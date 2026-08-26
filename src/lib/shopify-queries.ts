@@ -88,6 +88,62 @@ export async function getProducts() {
   return data?.products?.edges ?? [];
 }
 
+export type ProductForSync = Product & {
+  tags: string[];
+  productType: string;
+  vendor: string;
+  availableForSale: boolean;
+}
+
+/**
+ * Fetches every product in the catalog (paginating past Shopify's per-page limit),
+ * with the extra fields a search index needs (tags, type, vendor, availability).
+ * Meant for offline/batch jobs (e.g. syncing to Algolia) — not for request-time use.
+ */
+export async function getAllProducts(): Promise<ProductForSync[]> {
+  const query = `
+    query Products($after: String) {
+      products(first: 100, after: $after) {
+        pageInfo { hasNextPage endCursor }
+        edges {
+          node {
+            id title handle description
+            tags
+            productType
+            vendor
+            availableForSale
+            featuredImage { url }
+            priceRange { minVariantPrice { amount currencyCode } }
+            selectedOrFirstAvailableVariant { id availableForSale }
+          }
+        }
+      }
+    }`;
+
+  type ProductsPage = {
+    products: {
+      pageInfo: { hasNextPage: boolean; endCursor: string | null };
+      edges: { node: ProductForSync }[];
+    };
+  };
+
+  const products: ProductForSync[] = [];
+  let after: string | null = null;
+  let hasNextPage = true;
+
+  while (hasNextPage) {
+    const variables: { after: string | null } = { after };
+    const { data, errors } = await shopifyClient.request<ProductsPage>(query, { variables });
+    if (errors) throw new Error('Error to search all products: ' + JSON.stringify(errors));
+
+    products.push(...(data?.products?.edges ?? []).map(({ node }) => node));
+    hasNextPage = data?.products?.pageInfo?.hasNextPage ?? false;
+    after = data?.products?.pageInfo?.endCursor ?? null;
+  }
+
+  return products;
+}
+
 export async function getProductByHandle(handle: string) {
   const query = `
     query ProductByHandle($handle: String!) {
