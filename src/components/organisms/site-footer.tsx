@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
 import { BrandLogo } from "@/components/atoms/brand-logo";
 import { IconButton } from "@/components/atoms/icon-button";
-import { getFooter } from "@/lib/contentstack-queries";
+import { getFooter } from "@/lib/contentful-queries";
 import type { SVGProps } from "react";
 
 // lucide-react no longer ships trademarked brand glyphs, so the social

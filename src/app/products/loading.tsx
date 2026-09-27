@@ -2,7 +2,7 @@ import { PRODUCT_GRID_CLASSNAME } from "@/components/organisms/product-grid";
 
 /**
  * Streamed in immediately on navigation to /products, while getProducts() and
- * the Contentstack-backed header/footer resolve — without this, the browser
+ * the Contentful-backed header/footer resolve — without this, the browser
  * shows a blank tab until every fetch on the page finishes.
  */
 export default function ProductsLoading() {

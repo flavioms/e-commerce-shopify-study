@@ -1,4 +1,4 @@
-// scripts/seed-contentstack-site-content.ts
+// scripts/seed-contentful-site-content.ts
 //
 // Seeds the CMS-driven header (navigation), footer, static content pages
 // (About, Careers, ...), and FAQ — all placeholder copy, since (unlike
@@ -6,65 +6,11 @@
 // Idempotent: entries are matched by title and updated in place if they
 // already exist, so re-running this after editing the content below is safe.
 //
-// Usage: npm run seed-contentstack-site-content
+// Usage: npm run seed-contentful-site-content
 //
-// Requires (see .env.local): CONTENTSTACK_API_KEY / CONTENTSTACK_MANAGEMENT_TOKEN
+// Requires (see .env.local): CONTENTFUL_SPACE_ID / CONTENTFUL_MANAGEMENT_TOKEN
 
-import { cma, ENVIRONMENT, LOCALE } from './lib/contentstack-cma';
-
-type Entry = Record<string, unknown> & { title: string };
-
-async function upsertSingleton(contentTypeUid: string, fields: Entry) {
-  const { entries } = await cma<{ entries: { uid: string }[] }>(`/content_types/${contentTypeUid}/entries`);
-  const existing = entries[0];
-
-  if (existing) {
-    console.log(`Updating singleton "${contentTypeUid}"...`);
-    await cma(`/content_types/${contentTypeUid}/entries/${existing.uid}`, {
-      method: 'PUT',
-      body: JSON.stringify({ entry: fields }),
-    });
-    await publish(contentTypeUid, existing.uid);
-    return;
-  }
-
-  console.log(`Creating singleton "${contentTypeUid}"...`);
-  const { entry } = await cma<{ entry: { uid: string } }>(`/content_types/${contentTypeUid}/entries`, {
-    method: 'POST',
-    body: JSON.stringify({ entry: fields }),
-  });
-  await publish(contentTypeUid, entry.uid);
-}
-
-async function upsertByTitle(contentTypeUid: string, fields: Entry) {
-  const { entries } = await cma<{ entries: { uid: string; title: string }[] }>(
-    `/content_types/${contentTypeUid}/entries`,
-  );
-  const existing = entries.find((entry) => entry.title === fields.title);
-  if (existing) {
-    console.log(`Updating "${fields.title}" (${contentTypeUid})...`);
-    await cma(`/content_types/${contentTypeUid}/entries/${existing.uid}`, {
-      method: 'PUT',
-      body: JSON.stringify({ entry: fields }),
-    });
-    await publish(contentTypeUid, existing.uid);
-    return;
-  }
-
-  console.log(`Creating "${fields.title}" (${contentTypeUid})...`);
-  const { entry } = await cma<{ entry: { uid: string } }>(`/content_types/${contentTypeUid}/entries`, {
-    method: 'POST',
-    body: JSON.stringify({ entry: fields }),
-  });
-  await publish(contentTypeUid, entry.uid);
-}
-
-async function publish(contentTypeUid: string, entryUid: string) {
-  await cma(`/content_types/${contentTypeUid}/entries/${entryUid}/publish`, {
-    method: 'POST',
-    body: JSON.stringify({ entry: { environments: [ENVIRONMENT], locales: [LOCALE] } }),
-  });
-}
+import { upsertByTitle, upsertSingleton } from './lib/contentful-management';
 
 async function main() {
   await upsertSingleton('navigation', {
@@ -105,7 +51,7 @@ async function main() {
     copyright_text: 'flavio-commerce. All rights reserved.',
   });
 
-  const pages: Entry[] = [
+  const pages: (Record<string, unknown> & { title: string })[] = [
     {
       title: 'About',
       slug: 'about',
@@ -172,7 +118,7 @@ async function main() {
       seo: {
         // No manual "| flavio-commerce" suffix here: the root layout's title
         // template already appends it for every child route, this page included.
-        meta_title: page.title as string,
+        meta_title: page.title,
         meta_description: page.summary,
         keywords: '',
         enable_search_indexing: true,
@@ -180,7 +126,7 @@ async function main() {
     });
   }
 
-  const faqItems: Entry[] = [
+  const faqItems: (Record<string, unknown> & { title: string })[] = [
     {
       title: 'How long does shipping take?',
       answer: 'Standard shipping takes 3–7 business days. You will receive a tracking link by email as soon as your order ships.',
@@ -221,7 +167,7 @@ async function main() {
 }
 
 main().catch((error: unknown) => {
-  console.error('Failed to seed Contentstack site content:');
+  console.error('Failed to seed Contentful site content:');
   console.error(error);
   process.exitCode = 1;
 });

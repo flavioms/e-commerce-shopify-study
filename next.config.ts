@@ -10,11 +10,10 @@ const nextConfig: NextConfig = {
         hostname: "cdn.shopify.com",
         pathname: "/**",
       },
-      {
-        protocol: "https",
-        hostname: "images.contentstack.io",
-        pathname: "/**",
-      },
+      // No Contentful asset domain here: home-page images are stored as plain
+      // { url, title } JSON pointing straight at Shopify's CDN (see
+      // scripts/sync-contentful-home.ts) rather than re-uploaded into
+      // Contentful's own asset library.
     ],
   },
 };

@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
-import { getHomePage } from "@/lib/contentstack-queries";
+import { getHomePage } from "@/lib/contentful-queries";
 import { Button } from "@/components/ui/button";
 import { SITE_NAME } from "@/lib/site";
 
@@ -21,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
     description,
     alternates: { canonical: "/" },
     // Same flag [slug]/page.tsx honors — the home entry can opt out of
-    // indexing from Contentstack too, without a code change.
+    // indexing from Contentful too, without a code change.
     robots: home.seo?.enable_search_indexing === false ? { index: false } : undefined,
     openGraph: {
       type: "website",
@@ -102,7 +102,7 @@ export default async function Home() {
           </h2>
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-            {featuredCategories.map(({ instances: category }, index) => (
+            {featuredCategories.map((category, index) => (
               <Link
                 key={`${category.name}-${index}`}
                 href={category.link || "/products"}

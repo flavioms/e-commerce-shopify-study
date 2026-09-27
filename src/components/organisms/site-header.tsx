@@ -4,7 +4,7 @@ import { Search } from "lucide-react";
 import { CartDrawer } from "@/components/organisms/cart-drawer";
 import { BrandLogo } from "@/components/atoms/brand-logo";
 import { IconButton } from "@/components/atoms/icon-button";
-import { getNavigation } from "@/lib/contentstack-queries";
+import { getNavigation } from "@/lib/contentful-queries";
 
 const FALLBACK_BRAND_NAME = "flavio-commerce";
 const FALLBACK_NAV_LINKS = [

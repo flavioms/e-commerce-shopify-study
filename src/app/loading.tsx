@@ -1,6 +1,6 @@
 /**
  * Streamed in immediately on navigation, while a route's server data (Shopify,
- * Contentstack) resolves — without this, the browser shows a blank tab until
+ * Contentful) resolves — without this, the browser shows a blank tab until
  * every fetch on the page finishes.
  *
  * This is the ROOT loading.tsx: Next uses it as the Suspense fallback for

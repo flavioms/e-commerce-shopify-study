@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 import { getProducts } from "@/lib/shopify-queries";
-import { getAllPages } from "@/lib/contentstack-queries";
+import { getAllPages } from "@/lib/contentful-queries";
 import { SITE_URL } from "@/lib/site";
 
 // Static, indexable routes. /checkout and /search are intentionally excluded —
@@ -25,7 +25,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  // Contentstack pages opt out of indexing individually via seo.enable_search_indexing
+  // Contentful pages opt out of indexing individually via seo.enable_search_indexing
   // (same flag [slug]/page.tsx honors for `robots`) — keep the sitemap consistent
   // with what's actually allowed to be indexed.
   const pageEntries: MetadataRoute.Sitemap = pages
