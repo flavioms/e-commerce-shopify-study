@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { getFaqItems } from "@/lib/contentstack-queries";
+import { getFaqItems } from "@/lib/contentful-queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SITE_NAME } from "@/lib/site";
 

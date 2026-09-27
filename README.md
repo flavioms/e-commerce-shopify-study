@@ -2,7 +2,7 @@
 
 > **This is a study/learning project.** It exists to explore how a Next.js
 > storefront can be composed from several real third-party services (Shopify,
-> Contentstack, Algolia) — it is not a production store, and the catalog,
+> Contentful, Algolia) — it is not a production store, and the catalog,
 > home page copy, and static pages (About, Careers, FAQ, ...) are all seeded
 > with placeholder/demo content. Don't point it at a real store's credentials
 > expecting production-grade behavior (in particular: nothing here builds a
@@ -11,7 +11,7 @@
 
 A Next.js (App Router) storefront that pulls its catalog from **Shopify**
 (Storefront API), its marketing content (home page, header/footer, About/
-Careers/FAQ/...) from **Contentstack**, and product search from **Algolia**
+Careers/FAQ/...) from **Contentful**, and product search from **Algolia**
 — with a cookie-based cart backed by React Server Functions and Zustand.
 
 ## Stack
@@ -19,7 +19,7 @@ Careers/FAQ/...) from **Contentstack**, and product search from **Algolia**
 - **Next.js 16** (App Router, Turbopack, React Server Functions, React Compiler)
 - **React 19**
 - **Shopify Storefront API** — catalog, cart mutations, checkout handoff
-- **Contentstack** — home page, header/footer, static content pages, FAQ, contact
+- **Contentful** — home page, header/footer, static content pages, FAQ, contact
 - **Algolia** (`react-instantsearch`) — product search
 - **Zustand** — client-side cart store (see [Architecture notes](#architecture-notes))
 - **OpenTelemetry** (`@vercel/otel`) → **New Relic** — request tracing and error reporting, via New Relic's OTLP ingest endpoint
@@ -37,10 +37,10 @@ Careers/FAQ/...) from **Contentstack**, and product search from **Algolia**
   a fallback while the search box is empty
 - Home page, header, footer, and static pages (About, Careers, Privacy,
   Terms, Shipping & Returns, Track Order, FAQ, Contact) all authored in
-  Contentstack — nothing here is hardcoded copy
+  Contentful — nothing here is hardcoded copy
 - SEO: dynamic `sitemap.xml` and `robots.txt`, per-page canonical URLs and
   Open Graph/Twitter metadata, JSON-LD `Product` structured data on product
-  pages, and a per-entry "exclude from search indexing" flag in Contentstack
+  pages, and a per-entry "exclude from search indexing" flag in Contentful
 - `loading.tsx` route-level skeletons so navigation streams in instead of
   blocking on data
 - Observability: every request is traced with OpenTelemetry and exported to
@@ -78,8 +78,9 @@ See `.env.example` for the full list with inline comments. Grouped by service:
 | --- | --- |
 | `NEXT_PUBLIC_SITE_URL` | Canonical public URL — `metadataBase`, `sitemap.xml`, `robots.txt`, JSON-LD |
 | `NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_PRIVATE_TOKEN` | Shopify Storefront API (catalog, cart) |
-| `CONTENTSTACK_API_KEY`, `CONTENTSTACK_DELIVERY_TOKEN` | Contentstack Delivery API (read, used at request time) |
-| `CONTENTSTACK_MANAGEMENT_TOKEN` | Contentstack Management API — **scripts only**, never used by the app itself |
+| `CONTENTFUL_SPACE_ID`, `CONTENTFUL_DELIVERY_TOKEN` | Contentful Delivery API (read, used at request time) |
+| `CONTENTFUL_MANAGEMENT_TOKEN` | Contentful Management API — **scripts only**, never used by the app itself |
+| `CONTENTFUL_ENVIRONMENT` | Contentful environment name — optional, defaults to `master` |
 | `ALGOLIA_APP_ID`, `ALGOLIA_ADMIN_KEY`, `ALGOLIA_INDEX_NAME` | Algolia admin — **scripts only** (`sync-algolia`) |
 | `NEXT_PUBLIC_ALGOLIA_APP_ID`, `NEXT_PUBLIC_ALGOLIA_SEARCH_KEY`, `NEXT_PUBLIC_ALGOLIA_INDEX_NAME` | Algolia search-only key, used client-side by `/search` |
 | `NEW_RELIC_LICENSE_KEY` | New Relic OTLP ingest — optional, see [Observability](#observability) |
@@ -88,27 +89,27 @@ See `.env.example` for the full list with inline comments. Grouped by service:
 ## Content & data setup scripts
 
 The catalog comes from Shopify directly — no setup needed there beyond the
-env vars. Everything else (Contentstack content types/entries, the Algolia
+env vars. Everything else (Contentful content types/entries, the Algolia
 index) needs to be created once, via the scripts in `scripts/`:
 
 ```bash
-# 1. Create the Contentstack content types this app expects
+# 1. Create the Contentful content types this app expects
 #    (navigation, footer, page, faq_item — home/contact predate this repo)
-npm run setup-contentstack-content-types
+npm run setup-contentful-content-types
 
 # 2. Seed placeholder content: header/footer, About/Careers/Privacy/Terms/
 #    Shipping & Returns/Track Order pages, and FAQ items
-npm run seed-contentstack-site-content
+npm run seed-contentful-site-content
 
 # 3. Seed a couple of placeholder contact cards
-npm run seed-contentstack-contacts
+npm run seed-contentful-contacts
 
 # 4. Push the Shopify catalog into Algolia (needed before /search works)
 npm run sync-algolia
 
 # 5. Optional: replace the home page's placeholder hero/category/promo
 #    content with real products from the Shopify catalog
-npm run sync-contentstack-home
+npm run sync-contentful-home
 ```
 
 All of these are idempotent — safe to re-run after editing the placeholder
@@ -123,26 +124,26 @@ content inside each script.
 | `npm run start` | Serve the production build |
 | `npm run lint` | ESLint |
 | `npm run sync-algolia` | Push the full Shopify catalog into the Algolia index |
-| `npm run sync-contentstack-home` | Replace the home page's hero/category/promo with real Shopify products |
-| `npm run setup-contentstack-content-types` | Create the Contentstack content types this app expects |
-| `npm run seed-contentstack-site-content` | Seed header/footer/static pages/FAQ placeholder content |
-| `npm run seed-contentstack-contacts` | Seed placeholder contact cards |
+| `npm run sync-contentful-home` | Replace the home page's hero/category/promo with real Shopify products |
+| `npm run setup-contentful-content-types` | Create the Contentful content types this app expects |
+| `npm run seed-contentful-site-content` | Seed header/footer/static pages/FAQ placeholder content |
+| `npm run seed-contentful-contacts` | Seed placeholder contact cards |
 
 ## Project structure
 
 ```
 src/
   app/                          routes (App Router)
-    page.tsx                    — home (Contentstack)
+    page.tsx                    — home (Contentful)
     products/                   — product listing (ISR) + loading.tsx
     products/[product]/         — product detail (ISR) + loading.tsx + not-found.tsx
     search/                     — Algolia-powered search
                                    (layout.tsx carries its metadata — the page
                                    itself is a Client Component)
     checkout/                   — cart review → Shopify hosted checkout handoff
-    contact/, faq/               — Contentstack-backed static pages
-    [slug]/                     — any other Contentstack `page` entry
-    sitemap.ts, robots.ts       — generated from the Shopify catalog + Contentstack pages
+    contact/, faq/               — Contentful-backed static pages
+    [slug]/                     — any other Contentful `page` entry
+    sitemap.ts, robots.ts       — generated from the Shopify catalog + Contentful pages
     loading.tsx                 — generic fallback for routes without their own
   components/
     ui/                         — shadcn primitives (Button, Card, Sheet, Separator, ...)
@@ -157,7 +158,7 @@ src/
   instrumentation.ts             — OpenTelemetry setup, exported to New Relic (see Observability)
   lib/
     shopify.ts, shopify-queries.ts, shopify-cart.ts   — Shopify Storefront API client + queries
-    contentstack.ts, contentstack-queries.ts          — Contentstack Delivery SDK + queries
+    contentful.ts, contentful-queries.ts          — Contentful Delivery SDK + queries
     algolia-client.ts           — Algolia search client (browser-safe, search-only key)
     cart-store.ts                — Zustand cart store + useCart() hook
     cart-actions.ts              — cart Server Functions (add/update/remove line items)
@@ -219,7 +220,7 @@ component reads it directly via `useCart()`.
 
 **Rendering strategy.** Most routes are Server Components with
 `revalidate = 60` (ISR) rather than fully static or fully dynamic — content
-from Shopify/Contentstack can change without a redeploy, but pages still
+from Shopify/Contentful can change without a redeploy, but pages still
 serve from cache between revalidations. `/checkout` and `/search` are the
 exceptions (Client Components, since they depend on client-only state/hooks).
 

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { getPageBySlug } from "@/lib/contentstack-queries";
+import { getPageBySlug } from "@/lib/contentful-queries";
 import { SITE_NAME } from "@/lib/site";
 
 export const revalidate = 60; // ISR
