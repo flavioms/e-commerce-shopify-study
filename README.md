@@ -14,6 +14,8 @@ A Next.js (App Router) storefront that pulls its catalog from **Shopify**
 Careers/FAQ/...) from **Contentful**, and product search from **Algolia**
 — with a cookie-based cart backed by React Server Functions and Zustand.
 
+https://github.com/user-attachments/assets/342e088a-ed46-48c9-8c5c-179b5f015d4c
+
 ## Stack
 
 - **Next.js 16** (App Router, Turbopack, React Server Functions, React Compiler)
